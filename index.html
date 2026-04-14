@@ -497,6 +497,21 @@
       return String(dateStr).split("T")[0];
     }
 
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      // Strip time portion first to avoid timezone shift
+      const clean = String(dateStr).split('T')[0];
+      if (!clean || clean === 'undefined') return '';
+      const d = new Date(clean + 'T00:00:00');
+      if (isNaN(d)) return clean; // fallback: show raw string if parse fails
+      return d.toLocaleDateString('zh-HK', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      // Output example: 2026年4月16日
+    }
+
     // ============================================================
     // API
     // ============================================================
@@ -668,13 +683,13 @@
             </div>
 
             <div class="flex items-center gap-2 flex-wrap text-xs text-gray-400 dark:text-gray-500">
-              <span>下次：${escHtml(String(sub.nextBillingDate))}</span>
+              <span>下次：${formatDate(sub.nextBillingDate)}</span>
               ${urgentBadge}
             </div>
 
             ${sub.notes ? `<p class="text-xs text-gray-400 dark:text-gray-500 truncate">${escHtml(String(sub.notes))}</p>` : ''}
 
-            ${archived ? `<p class="text-xs text-gray-400 dark:text-gray-500">結束日期：${sub.endDate ? escHtml(String(sub.endDate)) : '未記錄'}</p>` : ''}
+            ${archived ? `<p class="text-xs text-gray-400 dark:text-gray-500">結束日期：${sub.endDate ? formatDate(sub.endDate) : '未記錄'}</p>` : ''}
 
             <div class="flex gap-2 pt-2 border-t border-gray-50 dark:border-gray-700 mt-auto">
               <button
