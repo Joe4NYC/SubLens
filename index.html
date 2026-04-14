@@ -196,6 +196,13 @@
               placeholder="其他備注..."></textarea>
           </div>
 
+          <!-- 結束日期（僅封存時顯示）-->
+          <div id="fieldEndDateWrapper">
+            <label class="block text-sm font-medium text-gray-700 mb-1">結束日期（選填）</label>
+            <input id="fieldEndDate" type="date"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
+          </div>
+
           <!-- Buttons -->
           <div class="flex gap-3 pt-1">
             <button type="button" id="btnCancelModal"
@@ -241,6 +248,13 @@
             <p class="text-xs text-indigo-400">預設選項</p>
           </div>
         </label>
+      </div>
+
+      <!-- End Date Field (only shown when archive mode is selected) -->
+      <div id="endDateField" class="mb-5">
+        <label class="block text-sm font-medium text-gray-700 mb-1">結束日期（選填）</label>
+        <input id="removeEndDate" type="date"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
       </div>
 
       <div class="flex gap-3">
@@ -339,23 +353,27 @@
           const start   = new Date(dateStr);
           if (isNaN(start.getTime())) return total;
 
+          // Use endDate as upper bound for archived subscriptions if available
+          const endDateStr = sub.endDate ? String(sub.endDate).split('T')[0] : null;
+          const end = (endDateStr && sub.status === 'archived') ? new Date(endDateStr) : today;
+
           let months = 0;
           if (sub.billingCycle === 'monthly') {
             months =
-              (today.getFullYear() - start.getFullYear()) * 12 +
-              (today.getMonth() - start.getMonth());
+              (end.getFullYear() - start.getFullYear()) * 12 +
+              (end.getMonth() - start.getMonth());
             // Add current month only if this month's billing day has already passed
             const billingDayThisMonth = new Date(
-              today.getFullYear(), today.getMonth(), start.getDate()
+              end.getFullYear(), end.getMonth(), start.getDate()
             );
-            if (today >= billingDayThisMonth) months += 1;
+            if (end >= billingDayThisMonth) months += 1;
             months = Math.max(months, 1);
           } else if (sub.billingCycle === 'yearly') {
-            let years = today.getFullYear() - start.getFullYear();
+            let years = end.getFullYear() - start.getFullYear();
             const hasPassedAnniversary =
-              today.getMonth() > start.getMonth() ||
-              (today.getMonth() === start.getMonth() &&
-                today.getDate() >= start.getDate());
+              end.getMonth() > start.getMonth() ||
+              (end.getMonth() === start.getMonth() &&
+                end.getDate() >= start.getDate());
             if (!hasPassedAnniversary) years -= 1;
             years  = Math.max(years, 0) + 1;
             months = years; // one unit per billing cycle
@@ -390,6 +408,11 @@
 
     function todayISO() {
       return new Date().toISOString().split('T')[0];
+    }
+
+    function toDateInputValue(dateStr) {
+      if (!dateStr) return "";
+      return String(dateStr).split("T")[0];
     }
 
     // ============================================================
@@ -523,6 +546,8 @@
             </div>
 
             ${sub.notes ? `<p class="text-xs text-gray-400 truncate">${escHtml(String(sub.notes))}</p>` : ''}
+
+            ${archived ? `<p class="text-xs text-gray-400">結束日期：${sub.endDate ? escHtml(String(sub.endDate)) : '未記錄'}</p>` : ''}
 
             <div class="flex gap-2 pt-2 border-t border-gray-50 mt-auto">
               <button
@@ -659,6 +684,8 @@
       document.getElementById('fieldEmoji').value    = '📦';
       document.getElementById('fieldStartDate').value = todayISO();
       document.getElementById('fieldCurrency').value  = CONFIG.DEFAULT_CURRENCY;
+      document.getElementById('fieldEndDateWrapper').style.display = 'none';
+      document.getElementById('fieldEndDate').value = '';
       showModal('modalOverlay');
     }
 
@@ -674,8 +701,17 @@
       document.getElementById('fieldAmount').value            = sub.amount;
       document.getElementById('fieldCurrency').value          = sub.currency;
       document.getElementById('fieldBillingCycle').value      = sub.billingCycle;
-      document.getElementById('fieldStartDate').value         = sub.startDate;
+      document.getElementById('fieldStartDate').value         = toDateInputValue(sub.startDate);
       document.getElementById('fieldNotes').value             = sub.notes || '';
+      // Show end date field only for archived subscriptions
+      const endDateWrapper = document.getElementById('fieldEndDateWrapper');
+      if (sub.status === 'archived') {
+        endDateWrapper.style.display = 'block';
+        document.getElementById('fieldEndDate').value = toDateInputValue(sub.endDate);
+      } else {
+        endDateWrapper.style.display = 'none';
+        document.getElementById('fieldEndDate').value = '';
+      }
       showModal('modalOverlay');
     }
 
@@ -708,6 +744,12 @@
         nextBillingDate,
         notes:           document.getElementById('fieldNotes').value.trim()
       };
+
+      // Include endDate when editing an archived subscription
+      const endDateWrapper = document.getElementById('fieldEndDateWrapper');
+      if (endDateWrapper && endDateWrapper.style.display !== 'none') {
+        data.endDate = document.getElementById('fieldEndDate').value || '';
+      }
 
       try {
         if (state.editingId) {
@@ -750,6 +792,7 @@
       document.querySelectorAll('input[name="removeMode"]').forEach(r => {
         r.checked = r.value === 'archive';
       });
+      document.getElementById('removeEndDate').value = todayISO();
       syncRemoveLabels();
       showModal('removeModalOverlay');
     }
@@ -765,9 +808,13 @@
           state.subscriptions = state.subscriptions.filter(s => String(s.id) !== String(state.removingId));
           showToast('訂閱及帳單已刪除', 'success');
         } else {
-          await apiFetch('updateSubscription', { id: state.removingId, status: 'archived' });
+          const endDate = document.getElementById('removeEndDate').value || todayISO();
+          await apiFetch('updateSubscription', { id: state.removingId, status: 'archived', endDate });
           const idx = state.subscriptions.findIndex(s => String(s.id) === String(state.removingId));
-          if (idx !== -1) state.subscriptions[idx].status = 'archived';
+          if (idx !== -1) {
+            state.subscriptions[idx].status  = 'archived';
+            state.subscriptions[idx].endDate = endDate;
+          }
           showToast('訂閱已封存', 'success');
         }
         hideModal('removeModalOverlay');
@@ -828,6 +875,7 @@
       document.getElementById('labelArchive').className = selected === 'archive'
         ? 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-indigo-200 bg-indigo-50 transition-colors'
         : 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-gray-200 hover:bg-gray-50 transition-colors';
+      document.getElementById('endDateField').style.display = selected === 'archive' ? 'block' : 'none';
     }
 
     // ============================================================

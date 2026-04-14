@@ -167,7 +167,7 @@ function deleteRowsBySubId(sheetName, subscriptionId) {
 //
 // 1. 建立 Google 試算表，新增兩個工作表：
 //    - 工作表名稱：subscriptions
-//      第一列標題：id | name | category | emoji | billingCycle | amount | currency | startDate | nextBillingDate | status | notes
+//      第一列標題：id | name | category | emoji | billingCycle | amount | currency | startDate | nextBillingDate | status | notes | endDate
 //    - 工作表名稱：bills
 //      第一列標題：id | subscriptionId | date | amount | currency
 //
