@@ -84,7 +84,7 @@
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
         <h2 class="text-sm font-semibold text-gray-600 mb-4">過去 6 個月支出趨勢</h2>
         <div class="relative h-64">
-          <canvas id="barChart"></canvas>
+          <canvas id="trendChart"></canvas>
         </div>
       </div>
     </section>
@@ -311,8 +311,7 @@
       filter: 'all',
       editingId: null,
       removingId: null,
-      pieChart: null,
-      barChart: null
+      pieChart: null
     };
 
     // ============================================================
@@ -580,7 +579,7 @@
     // ============================================================
     function renderCharts() {
       renderPieChart();
-      renderBarChart();
+      renderTrendChart(state.subscriptions);
     }
 
     function renderPieChart() {
@@ -636,52 +635,109 @@
       );
     }
 
-    function renderBarChart() {
-      const today  = new Date();
+    function calcLast6MonthsSpending(subscriptions) {
       const months = [];
+
+      // Build array of last 6 months (oldest → newest)
       for (let i = 5; i >= 0; i--) {
-        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        months.push({ year: d.getFullYear(), month: d.getMonth(), label: `${d.getMonth() + 1}月` });
+        const d = new Date();
+        d.setDate(1);
+        d.setMonth(d.getMonth() - i);
+        months.push({
+          year:  d.getFullYear(),
+          month: d.getMonth(), // 0-indexed
+          label: `${d.getMonth() + 1}月`,
+          total: 0
+        });
       }
 
-      const data = months.map(({ year, month }) =>
-        state.bills
-          .filter(b => { const d = new Date(b.date); return d.getFullYear() === year && d.getMonth() === month; })
-          .reduce((s, b) => s + toHKD(b.amount, b.currency), 0)
-      );
+      subscriptions.forEach(sub => {
+        if (!sub.startDate) return;
+        const start      = new Date(String(sub.startDate).split('T')[0]);
+        const end        = sub.endDate
+          ? new Date(String(sub.endDate).split('T')[0])
+          : new Date();
+        const amountHKD  = toHKD(parseFloat(sub.amount) || 0, sub.currency);
 
-      if (state.barChart) { state.barChart.destroy(); state.barChart = null; }
+        months.forEach(m => {
+          const monthStart = new Date(m.year, m.month, 1);
+          const monthEnd   = new Date(m.year, m.month + 1, 0); // last day of month
 
-      state.barChart = new Chart(
-        document.getElementById('barChart').getContext('2d'),
-        {
-          type: 'bar',
-          data: {
-            labels: months.map(m => m.label),
-            datasets: [{
-              label: '支出 (HKD)',
-              data,
-              backgroundColor: '#6366f1',
-              borderRadius: 6,
-              borderSkipped: false
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: { callbacks: { label: ctx => ' ' + fmtHKD(ctx.parsed.y) } }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: { callback: v => 'HK$' + v }
+          // Skip if subscription hadn't started or already ended before this month
+          if (start > monthEnd || end < monthStart) return;
+
+          if (sub.billingCycle === 'monthly') {
+            // Check if billing day falls within this month
+            const billingDay = new Date(m.year, m.month, start.getDate());
+            if (billingDay >= monthStart && billingDay <= monthEnd &&
+                billingDay >= start && billingDay <= end) {
+              m.total += amountHKD;
+            }
+          } else if (sub.billingCycle === 'yearly') {
+            // Check if annual billing day falls within this month
+            const billingDay = new Date(m.year, start.getMonth(), start.getDate());
+            if (billingDay.getMonth() === m.month &&
+                billingDay.getFullYear() === m.year &&
+                billingDay >= start && billingDay <= end) {
+              m.total += amountHKD;
+            }
+          }
+        });
+      });
+
+      return months;
+    }
+
+    function renderTrendChart(subscriptions) {
+      const monthlyData = calcLast6MonthsSpending(subscriptions);
+
+      const ctx = document.getElementById('trendChart').getContext('2d');
+
+      // Destroy existing chart instance if exists
+      if (window.trendChartInstance) window.trendChartInstance.destroy();
+
+      window.trendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: monthlyData.map(m => m.label),
+          datasets: [{
+            label: '月支出 (HKD)',
+            data: monthlyData.map(m => parseFloat(m.total.toFixed(2))),
+            borderColor: '#4F46E5',
+            backgroundColor: 'rgba(79, 70, 229, 0.08)',
+            borderWidth: 2.5,
+            pointBackgroundColor: '#4F46E5',
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            fill: true,
+            tension: 0.4  // smooth curve
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => `HK$${ctx.parsed.y.toFixed(2)}`
               }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: val => `HK$${val}`
+              },
+              grid: { color: 'rgba(0,0,0,0.05)' }
+            },
+            x: {
+              grid: { display: false }
             }
           }
         }
-      );
+      });
     }
 
     // ============================================================
