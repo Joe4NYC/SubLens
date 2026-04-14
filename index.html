@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SubTrack — 訂閱追蹤器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .modal-enter  { animation: fadeIn 0.2s ease forwards; }
+    .modal-box-enter { animation: slideUp 0.2s ease forwards; }
+    @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- ============================================================ -->
+  <!-- Full-page Loading Overlay (first load only)                  -->
+  <!-- ============================================================ -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+    <div class="animate-spin rounded-full h-16 w-16 border-4 border-indigo-500 border-t-transparent mb-4"></div>
+    <p class="text-gray-400 text-sm">載入中…</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Toast Container                                              -->
+  <!-- ============================================================ -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ============================================================ -->
+  <!-- Sticky Header                                                -->
+  <!-- ============================================================ -->
+  <header class="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <h1 class="text-xl font-bold text-indigo-600 tracking-tight">💰 SubTrack</h1>
+      <button id="btnAdd"
+        class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm">
+        + 新增
+      </button>
+    </div>
+  </header>
+
+  <!-- ============================================================ -->
+  <!-- Main Content                                                 -->
+  <!-- ============================================================ -->
+  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- Summary Cards -->
+    <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">每月支出</p>
+        <p id="summaryMonthly" class="text-2xl font-bold text-indigo-600">HK$0.00</p>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">每年支出</p>
+        <p id="summaryYearly" class="text-2xl font-bold text-indigo-600">HK$0.00</p>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">累積支出</p>
+        <p id="summaryCumulative" class="text-2xl font-bold text-indigo-600">HK$0.00</p>
+      </div>
+    </section>
+
+    <!-- Charts -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <h2 class="text-sm font-semibold text-gray-600 mb-4">分類支出（月均）</h2>
+        <div class="relative h-64">
+          <canvas id="pieChart"></canvas>
+          <div id="pieEmpty" class="hidden absolute inset-0 flex items-center justify-center text-gray-300 text-sm">暫無資料</div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <h2 class="text-sm font-semibold text-gray-600 mb-4">過去 6 個月支出趨勢</h2>
+        <div class="relative h-64">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filter Tabs + List -->
+    <section>
+      <div class="flex gap-2 mb-4">
+        <button class="tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-filter="all">全部</button>
+        <button class="tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-filter="active">啟用中</button>
+        <button class="tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-filter="archived">封存</button>
+      </div>
+
+      <!-- Subscription Cards Grid -->
+      <div id="subscriptionList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="hidden text-center py-20 text-gray-400">
+        <div class="text-6xl mb-4">📭</div>
+        <p class="text-lg font-semibold text-gray-500">尚無訂閱記錄</p>
+        <p class="text-sm mt-1">點擊右上角「+ 新增」來新增第一個訂閱</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================================================ -->
+  <!-- Add / Edit Modal                                             -->
+  <!-- ============================================================ -->
+  <div id="modalOverlay"
+    class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+    <div id="modalBox" class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h2 id="modalTitle" class="text-lg font-bold text-gray-800">新增訂閱</h2>
+          <button id="btnCloseModal"
+            class="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-xl leading-none">
+            &times;
+          </button>
+        </div>
+
+        <form id="subscriptionForm" class="space-y-4" novalidate>
+          <input type="hidden" id="fieldId" />
+
+          <!-- 名稱 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              名稱 <span class="text-red-500">*</span>
+            </label>
+            <input id="fieldName" type="text"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              placeholder="例：Netflix" />
+          </div>
+
+          <!-- 分類 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">分類</label>
+            <select id="fieldCategory"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white">
+              <option value="娛樂">娛樂</option>
+              <option value="工作效率">工作效率</option>
+              <option value="雲端儲存">雲端儲存</option>
+              <option value="AI工具">AI工具</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+
+          <!-- Emoji -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Emoji 圖示</label>
+            <input id="fieldEmoji" type="text"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              placeholder="📦" maxlength="4" />
+          </div>
+
+          <!-- 金額 + 貨幣 -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                金額 <span class="text-red-500">*</span>
+              </label>
+              <input id="fieldAmount" type="number" min="0.01" step="0.01"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                placeholder="0.00" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">貨幣</label>
+              <select id="fieldCurrency"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white">
+                <option value="HKD">HKD</option>
+                <option value="USD">USD</option>
+                <option value="CNY">CNY</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 繳費週期 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">繳費週期</label>
+            <select id="fieldBillingCycle"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white">
+              <option value="monthly">每月</option>
+              <option value="yearly">每年</option>
+            </select>
+          </div>
+
+          <!-- 開始日期 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              開始日期 <span class="text-red-500">*</span>
+            </label>
+            <input id="fieldStartDate" type="date"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
+          </div>
+
+          <!-- 備註 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">備註（選填）</label>
+            <textarea id="fieldNotes" rows="2"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent resize-none"
+              placeholder="其他備注..."></textarea>
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex gap-3 pt-1">
+            <button type="button" id="btnCancelModal"
+              class="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+              取消
+            </button>
+            <button type="submit"
+              class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">
+              儲存
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Remove Confirmation Modal                                    -->
+  <!-- ============================================================ -->
+  <div id="removeModalOverlay"
+    class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+      <div class="text-center mb-5">
+        <div class="text-5xl mb-3">⚠️</div>
+        <h2 class="text-lg font-bold text-gray-800">確認移除</h2>
+        <p id="removeModalName" class="text-sm text-gray-500 mt-1"></p>
+      </div>
+
+      <div class="space-y-2 mb-5">
+        <label id="labelDelete"
+          class="flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-gray-200 hover:bg-gray-50 transition-colors">
+          <input type="radio" name="removeMode" value="delete" class="mt-0.5 accent-indigo-600" />
+          <div>
+            <p class="text-sm font-medium text-gray-800">完全刪除</p>
+            <p class="text-xs text-gray-400">移除所有相關帳單記錄</p>
+          </div>
+        </label>
+        <label id="labelArchive"
+          class="flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-indigo-200 bg-indigo-50 transition-colors">
+          <input type="radio" name="removeMode" value="archive" checked class="mt-0.5 accent-indigo-600" />
+          <div>
+            <p class="text-sm font-medium text-gray-800">封存並保留帳單記錄</p>
+            <p class="text-xs text-indigo-400">預設選項</p>
+          </div>
+        </label>
+      </div>
+
+      <div class="flex gap-3">
+        <button id="btnCancelRemove"
+          class="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+          取消
+        </button>
+        <button id="btnConfirmRemove"
+          class="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">
+          確認移除
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Inline API Spinner (shown during each API call)             -->
+  <!-- ============================================================ -->
+  <div id="apiSpinner" class="hidden fixed bottom-5 right-5 z-50 bg-white rounded-full shadow-lg p-2.5">
+    <div class="animate-spin rounded-full h-5 w-5 border-2 border-indigo-500 border-t-transparent"></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Script                                                       -->
+  <!-- ============================================================ -->
+  <script>
+
+    // ============================================================
+    // Configuration — replace API_URL after deploying Apps Script
+    // ============================================================
+    const CONFIG = {
+      API_URL: "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE",
+      DEFAULT_CURRENCY: "HKD",
+      USD_TO_HKD: 7.78,
+      CNY_TO_HKD: 1.07
+    };
+
+    // ============================================================
+    // App State
+    // ============================================================
+    const state = {
+      subscriptions: [],
+      bills: [],
+      filter: 'all',
+      editingId: null,
+      removingId: null,
+      pieChart: null,
+      barChart: null
+    };
+
+    // ============================================================
+    // Currency Helpers
+    // ============================================================
+    function toHKD(amount, currency) {
+      const n = Number(amount) || 0;
+      if (currency === 'USD') return n * CONFIG.USD_TO_HKD;
+      if (currency === 'CNY') return n * CONFIG.CNY_TO_HKD;
+      return n;
+    }
+
+    function fmtHKD(amount) {
+      return 'HK$' + Number(amount).toFixed(2);
+    }
+
+    // ============================================================
+    // Spending Calculations
+    // ============================================================
+    function monthlyHKD(sub) {
+      const hkd = toHKD(sub.amount, sub.currency);
+      return sub.billingCycle === 'yearly' ? hkd / 12 : hkd;
+    }
+
+    function yearlyHKD(sub) {
+      const hkd = toHKD(sub.amount, sub.currency);
+      return sub.billingCycle === 'monthly' ? hkd * 12 : hkd;
+    }
+
+    function calcSummary() {
+      const active = state.subscriptions.filter(s => s.status === 'active');
+      return {
+        monthly:    active.reduce((s, sub) => s + monthlyHKD(sub), 0),
+        yearly:     active.reduce((s, sub) => s + yearlyHKD(sub), 0),
+        cumulative: state.bills.reduce((s, b) => s + toHKD(b.amount, b.currency), 0)
+      };
+    }
+
+    // ============================================================
+    // Date Helpers
+    // ============================================================
+    function calcNextBillingDate(startDate, billingCycle) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const next = new Date(startDate);
+      if (billingCycle === 'monthly') {
+        while (next <= today) next.setMonth(next.getMonth() + 1);
+      } else {
+        while (next <= today) next.setFullYear(next.getFullYear() + 1);
+      }
+      return next.toISOString().split('T')[0];
+    }
+
+    function daysUntil(dateStr) {
+      const target = new Date(dateStr);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      target.setHours(0, 0, 0, 0);
+      return Math.round((target - today) / 86400000);
+    }
+
+    function todayISO() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    // ============================================================
+    // API
+    // ============================================================
+    let spinnerDepth = 0;
+
+    // All requests use GET to avoid CORS preflight.
+    // Write operations encode their payload as ?data=<JSON string>.
+    async function apiFetch(action, data = null) {
+      spinnerDepth++;
+      document.getElementById('apiSpinner').classList.remove('hidden');
+      try {
+        let url = `${CONFIG.API_URL}?action=${encodeURIComponent(action)}`;
+        if (data !== null) {
+          url += `&data=${encodeURIComponent(JSON.stringify(data))}`;
+        }
+        const response = await fetch(url, { redirect: 'follow' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json();
+        if (result && result.error) throw new Error(result.error);
+        return result;
+      } catch (err) {
+        showToast('錯誤：' + err.message, 'error');
+        throw err;
+      } finally {
+        spinnerDepth = Math.max(0, spinnerDepth - 1);
+        if (spinnerDepth === 0) document.getElementById('apiSpinner').classList.add('hidden');
+      }
+    }
+
+    async function loadData() {
+      if (CONFIG.API_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+        showToast('請先在 CONFIG.API_URL 填入 Apps Script 網址', 'error');
+        document.getElementById('loadingOverlay').style.display = 'none';
+        renderAll();
+        return;
+      }
+      try {
+        const [subs, bills] = await Promise.all([
+          apiFetch('getSubscriptions'),
+          apiFetch('getBills')
+        ]);
+        state.subscriptions = Array.isArray(subs) ? subs : [];
+        state.bills = Array.isArray(bills) ? bills : [];
+        renderAll();
+      } catch (_) {
+        renderAll(); // show empty state on error
+      } finally {
+        document.getElementById('loadingOverlay').style.display = 'none';
+      }
+    }
+
+    // ============================================================
+    // Render
+    // ============================================================
+    function renderAll() {
+      renderSummary();
+      renderCards();
+      renderCharts();
+    }
+
+    function renderSummary() {
+      const { monthly, yearly, cumulative } = calcSummary();
+      document.getElementById('summaryMonthly').textContent    = fmtHKD(monthly);
+      document.getElementById('summaryYearly').textContent     = fmtHKD(yearly);
+      document.getElementById('summaryCumulative').textContent = fmtHKD(cumulative);
+    }
+
+    const CAT_COLORS = {
+      '娛樂':   '#6366f1',
+      '工作效率': '#22c55e',
+      '雲端儲存': '#3b82f6',
+      'AI工具':  '#f59e0b',
+      '其他':   '#a855f7'
+    };
+
+    function catColor(cat) {
+      return CAT_COLORS[cat] || '#a855f7';
+    }
+
+    function renderCards() {
+      const list   = document.getElementById('subscriptionList');
+      const empty  = document.getElementById('emptyState');
+      let filtered = [...state.subscriptions];
+      if (state.filter === 'active')   filtered = filtered.filter(s => s.status === 'active');
+      if (state.filter === 'archived') filtered = filtered.filter(s => s.status === 'archived');
+
+      if (filtered.length === 0) {
+        list.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      list.innerHTML = filtered.map(sub => {
+        const archived   = sub.status === 'archived';
+        const days       = daysUntil(sub.nextBillingDate);
+        const urgentBadge = (!archived && days >= 0 && days <= 7)
+          ? `<span class="text-xs font-semibold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">⚡ ${days}天後扣費</span>`
+          : '';
+        const cycleLbl   = sub.billingCycle === 'yearly' ? '每年' : '每月';
+        const statusCls  = archived
+          ? 'bg-gray-100 text-gray-500'
+          : 'bg-green-100 text-green-700';
+        const statusLbl  = archived ? '封存' : '啟用中';
+        const cardOpacity = archived ? 'opacity-60' : '';
+
+        return `
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-3 hover:shadow-md transition-shadow ${cardOpacity}">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-3xl leading-none">${escHtml(sub.emoji || '📦')}</span>
+                <div class="min-w-0">
+                  <p class="font-semibold text-gray-800 truncate text-sm">${escHtml(sub.name)}</p>
+                  <span class="inline-block text-xs px-2 py-0.5 rounded-full text-white font-medium mt-0.5"
+                    style="background-color:${catColor(sub.category)}">${escHtml(sub.category)}</span>
+                </div>
+              </div>
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${statusCls}">${statusLbl}</span>
+            </div>
+
+            <div class="flex items-baseline justify-between">
+              <span class="text-base font-bold text-gray-800">${escHtml(sub.currency)} ${Number(sub.amount).toFixed(2)}</span>
+              <span class="text-xs text-gray-400">${cycleLbl}</span>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap text-xs text-gray-400">
+              <span>下次：${escHtml(String(sub.nextBillingDate))}</span>
+              ${urgentBadge}
+            </div>
+
+            ${sub.notes ? `<p class="text-xs text-gray-400 truncate">${escHtml(String(sub.notes))}</p>` : ''}
+
+            <div class="flex gap-2 pt-2 border-t border-gray-50 mt-auto">
+              <button
+                onclick="openEditModal(${JSON.stringify(sub.id)})"
+                class="flex-1 text-xs text-indigo-600 hover:text-indigo-800 font-semibold py-1.5 rounded-lg hover:bg-indigo-50 transition-colors">
+                編輯
+              </button>
+              <button
+                onclick="openRemoveModal(${JSON.stringify(sub.id)})"
+                class="flex-1 text-xs text-red-500 hover:text-red-700 font-semibold py-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                移除
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ============================================================
+    // Charts
+    // ============================================================
+    function renderCharts() {
+      renderPieChart();
+      renderBarChart();
+    }
+
+    function renderPieChart() {
+      const active = state.subscriptions.filter(s => s.status === 'active');
+      const byCat  = {};
+      active.forEach(s => {
+        const k = s.category || '其他';
+        byCat[k] = (byCat[k] || 0) + monthlyHKD(s);
+      });
+
+      const labels = Object.keys(byCat);
+      const data   = labels.map(k => byCat[k]);
+      const colors = labels.map(l => catColor(l));
+      const pieEmpty = document.getElementById('pieEmpty');
+
+      if (state.pieChart) { state.pieChart.destroy(); state.pieChart = null; }
+
+      if (labels.length === 0) {
+        pieEmpty.classList.remove('hidden');
+        return;
+      }
+      pieEmpty.classList.add('hidden');
+
+      state.pieChart = new Chart(
+        document.getElementById('pieChart').getContext('2d'),
+        {
+          type: 'doughnut',
+          data: {
+            labels,
+            datasets: [{
+              data,
+              backgroundColor: colors,
+              borderWidth: 2,
+              borderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { boxWidth: 12, font: { size: 11 }, padding: 12 }
+              },
+              tooltip: {
+                callbacks: {
+                  label: ctx => ` ${ctx.label}: ${fmtHKD(ctx.parsed)}/月`
+                }
+              }
+            }
+          }
+        }
+      );
+    }
+
+    function renderBarChart() {
+      const today  = new Date();
+      const months = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        months.push({ year: d.getFullYear(), month: d.getMonth(), label: `${d.getMonth() + 1}月` });
+      }
+
+      const data = months.map(({ year, month }) =>
+        state.bills
+          .filter(b => { const d = new Date(b.date); return d.getFullYear() === year && d.getMonth() === month; })
+          .reduce((s, b) => s + toHKD(b.amount, b.currency), 0)
+      );
+
+      if (state.barChart) { state.barChart.destroy(); state.barChart = null; }
+
+      state.barChart = new Chart(
+        document.getElementById('barChart').getContext('2d'),
+        {
+          type: 'bar',
+          data: {
+            labels: months.map(m => m.label),
+            datasets: [{
+              label: '支出 (HKD)',
+              data,
+              backgroundColor: '#6366f1',
+              borderRadius: 6,
+              borderSkipped: false
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: { label: ctx => ' ' + fmtHKD(ctx.parsed.y) } }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { callback: v => 'HK$' + v }
+              }
+            }
+          }
+        }
+      );
+    }
+
+    // ============================================================
+    // Add / Edit Modal
+    // ============================================================
+    function openAddModal() {
+      state.editingId = null;
+      document.getElementById('modalTitle').textContent = '新增訂閱';
+      document.getElementById('subscriptionForm').reset();
+      document.getElementById('fieldEmoji').value    = '📦';
+      document.getElementById('fieldStartDate').value = todayISO();
+      document.getElementById('fieldCurrency').value  = CONFIG.DEFAULT_CURRENCY;
+      showModal('modalOverlay');
+    }
+
+    function openEditModal(id) {
+      const sub = state.subscriptions.find(s => String(s.id) === String(id));
+      if (!sub) return;
+      state.editingId = sub.id;
+      document.getElementById('modalTitle').textContent       = '編輯訂閱';
+      document.getElementById('fieldId').value                = sub.id;
+      document.getElementById('fieldName').value              = sub.name;
+      document.getElementById('fieldCategory').value          = sub.category;
+      document.getElementById('fieldEmoji').value             = sub.emoji || '📦';
+      document.getElementById('fieldAmount').value            = sub.amount;
+      document.getElementById('fieldCurrency').value          = sub.currency;
+      document.getElementById('fieldBillingCycle').value      = sub.billingCycle;
+      document.getElementById('fieldStartDate').value         = sub.startDate;
+      document.getElementById('fieldNotes').value             = sub.notes || '';
+      showModal('modalOverlay');
+    }
+
+    function closeModal() {
+      hideModal('modalOverlay');
+    }
+
+    async function saveSubscription(e) {
+      e.preventDefault();
+
+      const name      = document.getElementById('fieldName').value.trim();
+      const amount    = parseFloat(document.getElementById('fieldAmount').value);
+      const startDate = document.getElementById('fieldStartDate').value;
+
+      if (!name) { showToast('請填寫訂閱名稱', 'error'); return; }
+      if (!startDate) { showToast('請選擇開始日期', 'error'); return; }
+      if (isNaN(amount) || amount <= 0) { showToast('請輸入有效金額', 'error'); return; }
+
+      const billingCycle     = document.getElementById('fieldBillingCycle').value;
+      const nextBillingDate  = calcNextBillingDate(startDate, billingCycle);
+
+      const data = {
+        name,
+        category:        document.getElementById('fieldCategory').value,
+        emoji:           document.getElementById('fieldEmoji').value.trim() || '📦',
+        billingCycle,
+        amount,
+        currency:        document.getElementById('fieldCurrency').value,
+        startDate,
+        nextBillingDate,
+        notes:           document.getElementById('fieldNotes').value.trim()
+      };
+
+      try {
+        if (state.editingId) {
+          data.id = state.editingId;
+          await apiFetch('updateSubscription', data);
+          const idx = state.subscriptions.findIndex(s => String(s.id) === String(state.editingId));
+          if (idx !== -1) state.subscriptions[idx] = { ...state.subscriptions[idx], ...data };
+          showToast('訂閱已更新', 'success');
+        } else {
+          data.id     = crypto.randomUUID();
+          data.status = 'active';
+          await apiFetch('addSubscription', data);
+          // Record the initial bill
+          const bill = {
+            id:             crypto.randomUUID(),
+            subscriptionId: data.id,
+            date:           startDate,
+            amount:         data.amount,
+            currency:       data.currency
+          };
+          await apiFetch('addBill', bill);
+          state.subscriptions.push(data);
+          state.bills.push(bill);
+          showToast('訂閱已新增', 'success');
+        }
+        closeModal();
+        renderAll();
+      } catch (_) { /* error shown by apiFetch */ }
+    }
+
+    // ============================================================
+    // Remove Modal
+    // ============================================================
+    function openRemoveModal(id) {
+      const sub = state.subscriptions.find(s => String(s.id) === String(id));
+      if (!sub) return;
+      state.removingId = sub.id;
+      document.getElementById('removeModalName').textContent = `「${sub.name}」`;
+      // Reset to default (archive)
+      document.querySelectorAll('input[name="removeMode"]').forEach(r => {
+        r.checked = r.value === 'archive';
+      });
+      syncRemoveLabels();
+      showModal('removeModalOverlay');
+    }
+
+    async function confirmRemove() {
+      const mode       = document.querySelector('input[name="removeMode"]:checked').value;
+      const deleteBills = mode === 'delete';
+
+      try {
+        if (deleteBills) {
+          await apiFetch('deleteSubscription', { id: state.removingId, deleteBills: true });
+          state.bills         = state.bills.filter(b => String(b.subscriptionId) !== String(state.removingId));
+          state.subscriptions = state.subscriptions.filter(s => String(s.id) !== String(state.removingId));
+          showToast('訂閱及帳單已刪除', 'success');
+        } else {
+          await apiFetch('updateSubscription', { id: state.removingId, status: 'archived' });
+          const idx = state.subscriptions.findIndex(s => String(s.id) === String(state.removingId));
+          if (idx !== -1) state.subscriptions[idx].status = 'archived';
+          showToast('訂閱已封存', 'success');
+        }
+        hideModal('removeModalOverlay');
+        renderAll();
+      } catch (_) { /* error shown by apiFetch */ }
+    }
+
+    // ============================================================
+    // Modal Helpers
+    // ============================================================
+    function showModal(id) {
+      const overlay = document.getElementById(id);
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex', 'modal-enter');
+    }
+
+    function hideModal(id) {
+      const overlay = document.getElementById(id);
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex', 'modal-enter');
+    }
+
+    // ============================================================
+    // Toast Notifications
+    // ============================================================
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast     = document.createElement('div');
+      const bg        = type === 'error' ? 'bg-red-500' : 'bg-green-500';
+      toast.className = `${bg} text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg pointer-events-auto`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
+    // ============================================================
+    // Filter Tabs
+    // ============================================================
+    function setFilter(filter) {
+      state.filter = filter;
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        const active = btn.dataset.filter === filter;
+        btn.className = active
+          ? 'tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-indigo-600 text-white shadow-sm'
+          : 'tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors text-gray-600 hover:bg-gray-100';
+      });
+      renderCards();
+    }
+
+    // ============================================================
+    // Remove radio visual sync
+    // ============================================================
+    function syncRemoveLabels() {
+      const selected = document.querySelector('input[name="removeMode"]:checked')?.value;
+      document.getElementById('labelDelete').className  = selected === 'delete'
+        ? 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-indigo-200 bg-indigo-50 transition-colors'
+        : 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-gray-200 hover:bg-gray-50 transition-colors';
+      document.getElementById('labelArchive').className = selected === 'archive'
+        ? 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-indigo-200 bg-indigo-50 transition-colors'
+        : 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-gray-200 hover:bg-gray-50 transition-colors';
+    }
+
+    // ============================================================
+    // HTML Escape (XSS prevention)
+    // ============================================================
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // ============================================================
+    // Event Listeners
+    // ============================================================
+    document.getElementById('btnAdd').addEventListener('click', openAddModal);
+    document.getElementById('btnCloseModal').addEventListener('click', closeModal);
+    document.getElementById('btnCancelModal').addEventListener('click', closeModal);
+    document.getElementById('subscriptionForm').addEventListener('submit', saveSubscription);
+    document.getElementById('btnCancelRemove').addEventListener('click', () => hideModal('removeModalOverlay'));
+    document.getElementById('btnConfirmRemove').addEventListener('click', confirmRemove);
+
+    document.querySelectorAll('.tab-btn').forEach(btn =>
+      btn.addEventListener('click', () => setFilter(btn.dataset.filter))
+    );
+
+    document.querySelectorAll('input[name="removeMode"]').forEach(r =>
+      r.addEventListener('change', syncRemoveLabels)
+    );
+
+    // Close modals on backdrop click
+    document.getElementById('modalOverlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalOverlay')) closeModal();
+    });
+    document.getElementById('removeModalOverlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('removeModalOverlay')) hideModal('removeModalOverlay');
+    });
+
+    // ============================================================
+    // Initialize
+    // ============================================================
+    setFilter('all');
+    loadData();
+
+  </script>
+
+  <!--
+  ============================================================
+  SETUP GUIDE
+  ============================================================
+
+  1. 建立 Google 試算表
+     - 新增工作表 "subscriptions"，第一列填入標題：
+       id | name | category | emoji | billingCycle | amount | currency | startDate | nextBillingDate | status | notes
+     - 新增工作表 "bills"，第一列填入標題：
+       id | subscriptionId | date | amount | currency
+
+  2. 部署 Apps Script
+     - 在試算表中前往「擴充功能」→「Apps Script」
+     - 貼上 appsscript.gs 的內容並儲存
+     - 點選「部署」→「新增部署項目」→ 類型選「網頁應用程式」
+     - 設定：以我的身分執行 / 誰可以存取：任何人
+     - 點選「部署」，授權後複製 Web App URL
+
+  3. 填入 API URL
+     - 將複製的 URL 貼到此檔案中 CONFIG.API_URL 的位置
+     - 將 "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE" 替換掉即可
+
+  ============================================================
+  -->
+</body>
+</html>
