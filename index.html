@@ -391,6 +391,16 @@
       return 'HK$' + Number(amount).toFixed(2);
     }
 
+    function formatAmount(amount, currency) {
+      const num = parseFloat(amount) || 0;
+      const original = `${currency} ${num.toFixed(2)}`;
+      if (currency === 'HKD') return original;
+      const rateKey = `${currency}HKD`;
+      if (!CONFIG.RATES[rateKey]) return original;
+      const hkd = convertToHKD(num, currency);
+      return `${original} <span class="text-gray-400 dark:text-gray-500 text-sm font-normal">(≈ HK$${hkd.toFixed(2)})</span>`;
+    }
+
     // ============================================================
     // Spending Calculations
     // ============================================================
@@ -517,7 +527,7 @@
     }
 
     async function loadData() {
-      if (CONFIG.API_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+      if (CONFIG.API_URL === 'https://script.google.com/macros/library/d/19jY9_w1DV4NgHSWRxxMnxLaksAru240q0QM0nGR3ED6nF9o_KbgwYemK/2') {
         showToast('請先在 CONFIG.API_URL 填入 Apps Script 網址', 'error');
         document.getElementById('loadingOverlay').style.display = 'none';
         renderAll();
@@ -653,7 +663,7 @@
             </div>
 
             <div class="flex items-baseline justify-between">
-              <span class="text-base font-bold text-gray-800 dark:text-gray-100">${escHtml(sub.currency)} ${Number(sub.amount).toFixed(2)}</span>
+              <span class="text-base font-bold text-gray-800 dark:text-gray-100 amount-display">${formatAmount(sub.amount, sub.currency)}</span>
               <span class="text-xs text-gray-400 dark:text-gray-500">${cycleLbl}</span>
             </div>
 
@@ -1111,15 +1121,6 @@
     });
     document.getElementById('removeModalOverlay').addEventListener('click', e => {
       if (e.target === document.getElementById('removeModalOverlay')) hideModal('removeModalOverlay');
-    });
-
-    document.getElementById('refreshRatesBtn').addEventListener('click', async () => {
-      const btn = document.getElementById('refreshRatesBtn');
-      btn.textContent = '↻ 更新中...';
-      btn.disabled = true;
-      await loadAndDisplayRates();
-      btn.textContent = '↻ 刷新';
-      btn.disabled = false;
     });
 
     // ============================================================
