@@ -45,6 +45,9 @@ function doGet(e) {
       }
       result = { success: true };
 
+    } else if (action === 'getRates') {
+      result = getLiveRates();
+
     } else {
       result = { error: 'Unknown action: ' + action };
     }
@@ -159,6 +162,24 @@ function deleteRowsBySubId(sheetName, subscriptionId) {
       sheet.deleteRow(i + 1);
     }
   }
+}
+
+// ============================================================
+// Helper: Fetch live exchange rates via GOOGLEFINANCE
+// ============================================================
+
+function getLiveRates() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('rates');
+  if (!sheet) throw new Error('找不到 rates 工作表');
+
+  const data = sheet.getDataRange().getValues();
+  const rates = {};
+  data.forEach(row => {
+    if (row[0] && row[1]) {
+      rates[String(row[0]).trim()] = parseFloat(row[1]) || null;
+    }
+  });
+  return rates;
 }
 
 // ============================================================

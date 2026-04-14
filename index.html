@@ -71,6 +71,39 @@
   </header>
 
   <!-- ============================================================ -->
+  <!-- Live Rates Bar                                               -->
+  <!-- ============================================================ -->
+  <div id="ratesBar"
+    class="max-w-5xl mx-auto mx-4 mt-4 px-4 py-2 rounded-xl bg-white dark:bg-gray-800
+           border border-gray-100 dark:border-gray-700
+           flex items-center justify-between text-sm flex-wrap gap-2">
+
+    <div class="flex items-center gap-4 flex-wrap">
+      <span class="text-gray-500 dark:text-gray-400 font-medium">💱 實時匯率</span>
+
+      <span class="text-gray-700 dark:text-gray-300">
+        USD <span id="rateUSD" class="font-semibold text-indigo-600 dark:text-indigo-400">--</span>
+      </span>
+      <span class="text-gray-700 dark:text-gray-300">
+        CNY <span id="rateCNY" class="font-semibold text-indigo-600 dark:text-indigo-400">--</span>
+      </span>
+      <span class="text-gray-700 dark:text-gray-300">
+        EUR <span id="rateEUR" class="font-semibold text-indigo-600 dark:text-indigo-400">--</span>
+      </span>
+    </div>
+
+    <div class="flex items-center gap-2 text-gray-400 dark:text-gray-500 text-xs">
+      <span>更新於 <span id="ratesUpdatedAt">--</span></span>
+      <button id="refreshRatesBtn"
+        class="text-indigo-500 hover:text-indigo-700 dark:text-indigo-400
+               hover:underline transition"
+        title="重新獲取匯率">
+        ↻ 刷新
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
   <!-- Main Content                                                 -->
   <!-- ============================================================ -->
   <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
@@ -315,10 +348,13 @@
     // Configuration — replace API_URL after deploying Apps Script
     // ============================================================
     const CONFIG = {
-      API_URL: "https://script.google.com/macros/s/AKfycbwycICLLYXbsgLjuYjIQP_Y6lssZeSnl86RY_hcaeRz82Ui-kcdULGjU6V1Pk1jJY-q7Q/exec",
+      API_URL: "https://script.google.com/macros/s/AKfycbx3Qcm7zEpFvIMFET95UrdohfF68UZ0riDM9ydATGjaf9QGE_wpEu5_uJbRvyNPzCnYPQ/exec",
       DEFAULT_CURRENCY: "HKD",
-      USD_TO_HKD: 7.78,
-      CNY_TO_HKD: 1.07
+      RATES: {
+        USDHKD: 7.78,  // fallback if API fails
+        CNYHKD: 1.07,
+        EURHKD: 8.45
+      }
     };
 
     // ============================================================
@@ -336,11 +372,19 @@
     // ============================================================
     // Currency Helpers
     // ============================================================
+    function convertToHKD(amount, currency) {
+      if (currency === 'HKD') return amount;
+      const rateKey = `${currency}HKD`;
+      const rate = CONFIG.RATES[rateKey];
+      if (!rate) {
+        console.warn(`No rate found for ${currency}, using 1:1`);
+        return amount;
+      }
+      return amount * rate;
+    }
+
     function toHKD(amount, currency) {
-      const n = Number(amount) || 0;
-      if (currency === 'USD') return n * CONFIG.USD_TO_HKD;
-      if (currency === 'CNY') return n * CONFIG.CNY_TO_HKD;
-      return n;
+      return convertToHKD(Number(amount) || 0, currency);
     }
 
     function fmtHKD(amount) {
@@ -492,6 +536,51 @@
       } finally {
         document.getElementById('loadingOverlay').style.display = 'none';
       }
+    }
+
+    async function loadAndDisplayRates() {
+      // Show loading state
+      ['rateUSD', 'rateCNY', 'rateEUR'].forEach(id => {
+        document.getElementById(id).textContent = '...';
+      });
+
+      try {
+        const rates = await apiFetch('getRates');
+
+        // Update CONFIG.RATES for use in convertToHKD()
+        if (rates.USDHKD) CONFIG.RATES.USDHKD = rates.USDHKD;
+        if (rates.CNYHKD) CONFIG.RATES.CNYHKD = rates.CNYHKD;
+        if (rates.EURHKD) CONFIG.RATES.EURHKD = rates.EURHKD;
+
+        // Display on UI
+        document.getElementById('rateUSD').textContent =
+          rates.USDHKD ? rates.USDHKD.toFixed(4) : 'N/A';
+        document.getElementById('rateCNY').textContent =
+          rates.CNYHKD ? rates.CNYHKD.toFixed(4) : 'N/A';
+        document.getElementById('rateEUR').textContent =
+          rates.EURHKD ? rates.EURHKD.toFixed(4) : 'N/A';
+
+        // Timestamp
+        const now = new Date();
+        document.getElementById('ratesUpdatedAt').textContent =
+          now.toLocaleTimeString('zh-HK', { hour: '2-digit', minute: '2-digit' });
+
+        // Re-render amounts with updated rates
+        renderAll();
+
+        console.log('✅ Live rates loaded:', CONFIG.RATES);
+      } catch (e) {
+        ['rateUSD', 'rateCNY', 'rateEUR'].forEach(id => {
+          document.getElementById(id).textContent = 'N/A';
+        });
+        document.getElementById('ratesUpdatedAt').textContent = '獲取失敗';
+        console.warn('Failed to load rates, using fallback:', CONFIG.RATES);
+      }
+    }
+
+    async function init() {
+      await loadAndDisplayRates();  // fetch rates first
+      await loadData();             // then load subscriptions & bills
     }
 
     // ============================================================
@@ -1024,6 +1113,15 @@
       if (e.target === document.getElementById('removeModalOverlay')) hideModal('removeModalOverlay');
     });
 
+    document.getElementById('refreshRatesBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('refreshRatesBtn');
+      btn.textContent = '↻ 更新中...';
+      btn.disabled = true;
+      await loadAndDisplayRates();
+      btn.textContent = '↻ 刷新';
+      btn.disabled = false;
+    });
+
     // ============================================================
     // Initialize
     // ============================================================
@@ -1051,7 +1149,7 @@
     });
 
     setFilter('all');
-    loadData();
+    init();
 
   </script>
 
