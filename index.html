@@ -14,7 +14,18 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4F46E5">
 
+  <style>
+    *, *::before, *::after {
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+    }
+  </style>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {} }
+    }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     .modal-enter  { animation: fadeIn 0.2s ease forwards; }
@@ -23,14 +34,14 @@
     @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
 
   <!-- ============================================================ -->
   <!-- Full-page Loading Overlay (first load only)                  -->
   <!-- ============================================================ -->
-  <div id="loadingOverlay" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+  <div id="loadingOverlay" class="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col items-center justify-center">
     <div class="animate-spin rounded-full h-16 w-16 border-4 border-indigo-500 border-t-transparent mb-4"></div>
-    <p class="text-gray-400 text-sm">載入中…</p>
+    <p class="text-gray-400 dark:text-gray-500 text-sm">載入中…</p>
   </div>
 
   <!-- ============================================================ -->
@@ -41,13 +52,21 @@
   <!-- ============================================================ -->
   <!-- Sticky Header                                                -->
   <!-- ============================================================ -->
-  <header class="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm">
+  <header class="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
       <h1 class="text-xl font-bold text-indigo-600 tracking-tight">💰 SubLens</h1>
-      <button id="btnAdd"
-        class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm">
-        + 新增
-      </button>
+      <div class="flex items-center gap-2">
+        <button id="darkModeToggle"
+          class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+          title="切換夜間模式"
+          aria-label="Toggle dark mode">
+          <span id="darkModeIcon">🌙</span>
+        </button>
+        <button id="btnAdd"
+          class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm">
+          + 新增
+        </button>
+      </div>
     </div>
   </header>
 
@@ -58,31 +77,31 @@
 
     <!-- Summary Cards -->
     <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">每月支出</p>
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+        <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">每月支出</p>
         <p id="summaryMonthly" class="text-2xl font-bold text-indigo-600">HK$0.00</p>
       </div>
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">每年支出</p>
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+        <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">每年支出</p>
         <p id="summaryYearly" class="text-2xl font-bold text-indigo-600">HK$0.00</p>
       </div>
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">累積支出</p>
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+        <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">累積支出</p>
         <p id="summaryCumulative" class="text-2xl font-bold text-indigo-600">HK$0.00</p>
       </div>
     </section>
 
     <!-- Charts -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <h2 class="text-sm font-semibold text-gray-600 mb-4">分類支出（月均）</h2>
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+        <h2 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-4">分類支出（月均）</h2>
         <div class="relative h-64">
           <canvas id="pieChart"></canvas>
-          <div id="pieEmpty" class="hidden absolute inset-0 flex items-center justify-center text-gray-300 text-sm">暫無資料</div>
+          <div id="pieEmpty" class="hidden absolute inset-0 flex items-center justify-center text-gray-300 dark:text-gray-500 text-sm">暫無資料</div>
         </div>
       </div>
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <h2 class="text-sm font-semibold text-gray-600 mb-4">過去 6 個月支出趨勢</h2>
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+        <h2 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-4">過去 6 個月支出趨勢</h2>
         <div class="relative h-64">
           <canvas id="trendChart"></canvas>
         </div>
@@ -101,9 +120,9 @@
       <div id="subscriptionList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
 
       <!-- Empty State -->
-      <div id="emptyState" class="hidden text-center py-20 text-gray-400">
+      <div id="emptyState" class="hidden text-center py-20 text-gray-400 dark:text-gray-500">
         <div class="text-6xl mb-4">📭</div>
-        <p class="text-lg font-semibold text-gray-500">尚無訂閱記錄</p>
+        <p class="text-lg font-semibold text-gray-500 dark:text-gray-400">尚無訂閱記錄</p>
         <p class="text-sm mt-1">點擊右上角「+ 新增」來新增第一個訂閱</p>
       </div>
     </section>
@@ -114,12 +133,12 @@
   <!-- ============================================================ -->
   <div id="modalOverlay"
     class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
-    <div id="modalBox" class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div id="modalBox" class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
       <div class="p-6">
         <div class="flex items-center justify-between mb-5">
-          <h2 id="modalTitle" class="text-lg font-bold text-gray-800">新增訂閱</h2>
+          <h2 id="modalTitle" class="text-lg font-bold text-gray-800 dark:text-gray-100">新增訂閱</h2>
           <button id="btnCloseModal"
-            class="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-xl leading-none">
+            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-xl leading-none">
             &times;
           </button>
         </div>
@@ -129,19 +148,19 @@
 
           <!-- 名稱 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               名稱 <span class="text-red-500">*</span>
             </label>
             <input id="fieldName" type="text"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100"
               placeholder="例：Netflix" />
           </div>
 
           <!-- 分類 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">分類</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">分類</label>
             <select id="fieldCategory"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white">
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100">
               <option value="娛樂">娛樂</option>
               <option value="工作效率">工作效率</option>
               <option value="雲端儲存">雲端儲存</option>
@@ -152,26 +171,26 @@
 
           <!-- Emoji -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Emoji 圖示</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Emoji 圖示</label>
             <input id="fieldEmoji" type="text"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100"
               placeholder="📦" maxlength="4" />
           </div>
 
           <!-- 金額 + 貨幣 -->
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 金額 <span class="text-red-500">*</span>
               </label>
               <input id="fieldAmount" type="number" min="0.01" step="0.01"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100"
                 placeholder="0.00" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">貨幣</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">貨幣</label>
               <select id="fieldCurrency"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white">
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100">
                 <option value="HKD">HKD</option>
                 <option value="USD">USD</option>
                 <option value="CNY">CNY</option>
@@ -181,9 +200,9 @@
 
           <!-- 繳費週期 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">繳費週期</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">繳費週期</label>
             <select id="fieldBillingCycle"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white">
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100">
               <option value="monthly">每月</option>
               <option value="yearly">每年</option>
             </select>
@@ -191,32 +210,32 @@
 
           <!-- 開始日期 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               開始日期 <span class="text-red-500">*</span>
             </label>
             <input id="fieldStartDate" type="date"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100" />
           </div>
 
           <!-- 備註 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">備註（選填）</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">備註（選填）</label>
             <textarea id="fieldNotes" rows="2"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent resize-none"
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent resize-none bg-white dark:bg-gray-700 dark:text-gray-100"
               placeholder="其他備注..."></textarea>
           </div>
 
           <!-- 結束日期（僅封存時顯示）-->
           <div id="fieldEndDateWrapper">
-            <label class="block text-sm font-medium text-gray-700 mb-1">結束日期（選填）</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">結束日期（選填）</label>
             <input id="fieldEndDate" type="date"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100" />
           </div>
 
           <!-- Buttons -->
           <div class="flex gap-3 pt-1">
             <button type="button" id="btnCancelModal"
-              class="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+              class="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
               取消
             </button>
             <button type="submit"
@@ -234,27 +253,27 @@
   <!-- ============================================================ -->
   <div id="removeModalOverlay"
     class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6">
       <div class="text-center mb-5">
         <div class="text-5xl mb-3">⚠️</div>
-        <h2 class="text-lg font-bold text-gray-800">確認移除</h2>
-        <p id="removeModalName" class="text-sm text-gray-500 mt-1"></p>
+        <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">確認移除</h2>
+        <p id="removeModalName" class="text-sm text-gray-500 dark:text-gray-400 mt-1"></p>
       </div>
 
       <div class="space-y-2 mb-5">
         <label id="labelDelete"
-          class="flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-gray-200 hover:bg-gray-50 transition-colors">
+          class="flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
           <input type="radio" name="removeMode" value="delete" class="mt-0.5 accent-indigo-600" />
           <div>
-            <p class="text-sm font-medium text-gray-800">完全刪除</p>
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">完全刪除</p>
             <p class="text-xs text-gray-400">移除所有相關帳單記錄</p>
           </div>
         </label>
         <label id="labelArchive"
-          class="flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-indigo-200 bg-indigo-50 transition-colors">
+          class="flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-indigo-200 bg-indigo-50 dark:border-indigo-500 dark:bg-indigo-900/30 transition-colors">
           <input type="radio" name="removeMode" value="archive" checked class="mt-0.5 accent-indigo-600" />
           <div>
-            <p class="text-sm font-medium text-gray-800">封存並保留帳單記錄</p>
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">封存並保留帳單記錄</p>
             <p class="text-xs text-indigo-400">預設選項</p>
           </div>
         </label>
@@ -262,14 +281,14 @@
 
       <!-- End Date Field (only shown when archive mode is selected) -->
       <div id="endDateField" class="mb-5">
-        <label class="block text-sm font-medium text-gray-700 mb-1">結束日期（選填）</label>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">結束日期（選填）</label>
         <input id="removeEndDate" type="date"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent" />
+          class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100" />
       </div>
 
       <div class="flex gap-3">
         <button id="btnCancelRemove"
-          class="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+          class="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
           取消
         </button>
         <button id="btnConfirmRemove"
@@ -283,7 +302,7 @@
   <!-- ============================================================ -->
   <!-- Inline API Spinner (shown during each API call)             -->
   <!-- ============================================================ -->
-  <div id="apiSpinner" class="hidden fixed bottom-5 right-5 z-50 bg-white rounded-full shadow-lg p-2.5">
+  <div id="apiSpinner" class="hidden fixed bottom-5 right-5 z-50 bg-white dark:bg-gray-800 rounded-full shadow-lg p-2.5">
     <div class="animate-spin rounded-full h-5 w-5 border-2 border-indigo-500 border-t-transparent"></div>
   </div>
 
@@ -531,12 +550,12 @@
         const cardOpacity = archived ? 'opacity-60' : '';
 
         return `
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col gap-3 hover:shadow-md transition-shadow ${cardOpacity}">
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 flex flex-col gap-3 hover:shadow-md transition-shadow ${cardOpacity}">
             <div class="flex items-start justify-between gap-2">
               <div class="flex items-center gap-2 min-w-0">
                 <span class="text-3xl leading-none">${escHtml(sub.emoji || '📦')}</span>
                 <div class="min-w-0">
-                  <p class="font-semibold text-gray-800 truncate text-sm">${escHtml(sub.name)}</p>
+                  <p class="font-semibold text-gray-800 dark:text-gray-100 truncate text-sm">${escHtml(sub.name)}</p>
                   <span class="inline-block text-xs px-2 py-0.5 rounded-full text-white font-medium mt-0.5"
                     style="background-color:${catColor(sub.category)}">${escHtml(sub.category)}</span>
                 </div>
@@ -545,28 +564,28 @@
             </div>
 
             <div class="flex items-baseline justify-between">
-              <span class="text-base font-bold text-gray-800">${escHtml(sub.currency)} ${Number(sub.amount).toFixed(2)}</span>
-              <span class="text-xs text-gray-400">${cycleLbl}</span>
+              <span class="text-base font-bold text-gray-800 dark:text-gray-100">${escHtml(sub.currency)} ${Number(sub.amount).toFixed(2)}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">${cycleLbl}</span>
             </div>
 
-            <div class="flex items-center gap-2 flex-wrap text-xs text-gray-400">
+            <div class="flex items-center gap-2 flex-wrap text-xs text-gray-400 dark:text-gray-500">
               <span>下次：${escHtml(String(sub.nextBillingDate))}</span>
               ${urgentBadge}
             </div>
 
-            ${sub.notes ? `<p class="text-xs text-gray-400 truncate">${escHtml(String(sub.notes))}</p>` : ''}
+            ${sub.notes ? `<p class="text-xs text-gray-400 dark:text-gray-500 truncate">${escHtml(String(sub.notes))}</p>` : ''}
 
-            ${archived ? `<p class="text-xs text-gray-400">結束日期：${sub.endDate ? escHtml(String(sub.endDate)) : '未記錄'}</p>` : ''}
+            ${archived ? `<p class="text-xs text-gray-400 dark:text-gray-500">結束日期：${sub.endDate ? escHtml(String(sub.endDate)) : '未記錄'}</p>` : ''}
 
-            <div class="flex gap-2 pt-2 border-t border-gray-50 mt-auto">
+            <div class="flex gap-2 pt-2 border-t border-gray-50 dark:border-gray-700 mt-auto">
               <button
                 data-action="edit" data-id="${escHtml(String(sub.id))}"
-                class="flex-1 text-xs text-indigo-600 hover:text-indigo-800 font-semibold py-1.5 rounded-lg hover:bg-indigo-50 transition-colors">
+                class="flex-1 text-xs text-indigo-600 hover:text-indigo-800 font-semibold py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
                 編輯
               </button>
               <button
                 data-action="remove" data-id="${escHtml(String(sub.id))}"
-                class="flex-1 text-xs text-red-500 hover:text-red-700 font-semibold py-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                class="flex-1 text-xs text-red-500 hover:text-red-700 font-semibold py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                 移除
               </button>
             </div>
@@ -577,6 +596,16 @@
     // ============================================================
     // Charts
     // ============================================================
+    function getChartColors() {
+      const isDark = document.documentElement.classList.contains("dark");
+      return {
+        gridColor:  isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+        tickColor:  isDark ? "#9CA3AF" : "#6B7280",
+        labelColor: isDark ? "#D1D5DB" : "#374151",
+        borderColor: isDark ? "#1F2937" : "#fff"
+      };
+    }
+
     function renderCharts() {
       renderPieChart();
       renderTrendChart(state.subscriptions);
@@ -603,6 +632,8 @@
       }
       pieEmpty.classList.add('hidden');
 
+      const { borderColor, labelColor } = getChartColors();
+
       state.pieChart = new Chart(
         document.getElementById('pieChart').getContext('2d'),
         {
@@ -613,7 +644,7 @@
               data,
               backgroundColor: colors,
               borderWidth: 2,
-              borderColor: '#fff'
+              borderColor
             }]
           },
           options: {
@@ -622,7 +653,7 @@
             plugins: {
               legend: {
                 position: 'bottom',
-                labels: { boxWidth: 12, font: { size: 11 }, padding: 12 }
+                labels: { boxWidth: 12, font: { size: 11 }, padding: 12, color: labelColor }
               },
               tooltip: {
                 callbacks: {
@@ -696,6 +727,8 @@
       // Destroy existing chart instance if exists
       if (window.trendChartInstance) window.trendChartInstance.destroy();
 
+      const { gridColor, tickColor, labelColor } = getChartColors();
+
       window.trendChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
@@ -728,12 +761,14 @@
             y: {
               beginAtZero: true,
               ticks: {
-                callback: val => `HK$${val}`
+                callback: val => `HK$${val}`,
+                color: tickColor
               },
-              grid: { color: 'rgba(0,0,0,0.05)' }
+              grid: { color: gridColor }
             },
             x: {
-              grid: { display: false }
+              grid: { display: false },
+              ticks: { color: tickColor }
             }
           }
         }
@@ -925,7 +960,7 @@
         const active = btn.dataset.filter === filter;
         btn.className = active
           ? 'tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-indigo-600 text-white shadow-sm'
-          : 'tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors text-gray-600 hover:bg-gray-100';
+          : 'tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700';
       });
       renderCards();
     }
@@ -936,11 +971,11 @@
     function syncRemoveLabels() {
       const selected = document.querySelector('input[name="removeMode"]:checked')?.value;
       document.getElementById('labelDelete').className  = selected === 'delete'
-        ? 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-indigo-200 bg-indigo-50 transition-colors'
-        : 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-gray-200 hover:bg-gray-50 transition-colors';
+        ? 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-indigo-200 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 transition-colors'
+        : 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors';
       document.getElementById('labelArchive').className = selected === 'archive'
-        ? 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-indigo-200 bg-indigo-50 transition-colors'
-        : 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-gray-200 hover:bg-gray-50 transition-colors';
+        ? 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-indigo-200 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 transition-colors'
+        : 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors';
       document.getElementById('endDateField').style.display = selected === 'archive' ? 'block' : 'none';
     }
 
@@ -992,6 +1027,29 @@
     // ============================================================
     // Initialize
     // ============================================================
+
+    // ── Dark Mode ──────────────────────────────────────────────
+    const darkToggleBtn = document.getElementById("darkModeToggle");
+    const darkModeIcon  = document.getElementById("darkModeIcon");
+
+    function applyDarkMode(isDark) {
+      document.documentElement.classList.toggle("dark", isDark);
+      darkModeIcon.textContent = isDark ? "☀️" : "🌙";
+      localStorage.setItem("sublens-darkmode", isDark ? "1" : "0");
+    }
+
+    // Restore preference on load
+    const savedDark   = localStorage.getItem("sublens-darkmode");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    applyDarkMode(savedDark !== null ? savedDark === "1" : prefersDark);
+
+    darkToggleBtn.addEventListener("click", () => {
+      const isDark = document.documentElement.classList.contains("dark");
+      applyDarkMode(!isDark);
+      renderTrendChart(state.subscriptions);
+      renderPieChart();
+    });
+
     setFilter('all');
     loadData();
 
