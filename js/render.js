@@ -1,5 +1,5 @@
 import { state, CAT_COLORS } from './config.js';
-import { monthlyHKD, calcSummary, calcLast6MonthsSpending } from './calc.js';
+import { monthlyHKD, calcSummary, calcSpendingRanking } from './calc.js';
 import { fmtHKD, formatAmount } from './currency.js';
 import { daysUntil, formatDate } from './dates.js';
 import { escHtml } from './ui.js';
@@ -27,15 +27,35 @@ function getChartColors() {
 
 // Builds the HTML string for a single subscription card.
 function buildCard(sub) {
-  const archived    = sub.status === 'archived';
+  const archived = sub.status === 'archived';
+  const paused   = sub.status === 'paused';
+  const active   = sub.status === 'active';
+
   const days        = daysUntil(sub.nextBillingDate);
-  const urgentBadge = (!archived && days >= 0 && days <= 7)
+  const urgentBadge = (active && days >= 0 && days <= 7)
     ? `<span class="text-xs font-semibold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">⚡ ${days}天後扣費</span>`
     : '';
   const cycleLbl   = sub.billingCycle === 'yearly' ? '每年' : '每月';
-  const statusCls  = archived ? 'bg-gray-100 text-gray-500' : 'bg-green-100 text-green-700';
-  const statusLbl  = archived ? '封存' : '啟用中';
-  const cardOpacity = archived ? 'opacity-60' : '';
+
+  let statusCls, statusLbl;
+  if (archived) { statusCls = 'bg-gray-100 text-gray-500';   statusLbl = '封存'; }
+  else if (paused)   { statusCls = 'bg-amber-100 text-amber-700'; statusLbl = '⏸ 暫停'; }
+  else               { statusCls = 'bg-green-100 text-green-700'; statusLbl = '啟用中'; }
+  const cardOpacity = archived ? 'opacity-60' : (paused ? 'opacity-75' : '');
+
+  const nextBillingLine = paused
+    ? `<span class="text-amber-600 dark:text-amber-400">已暫停（${sub.pausedDate ? formatDate(sub.pausedDate) : '今天'}）</span>`
+    : `<span>下次：${formatDate(sub.nextBillingDate)}</span>`;
+
+  // Pause/Resume button — only shown for active or paused, not archived
+  let toggleBtn = '';
+  if (active) {
+    toggleBtn = `<button data-action="pause" data-id="${escHtml(String(sub.id))}"
+      class="flex-1 text-xs text-amber-600 hover:text-amber-700 font-semibold py-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">⏸ 暫停</button>`;
+  } else if (paused) {
+    toggleBtn = `<button data-action="resume" data-id="${escHtml(String(sub.id))}"
+      class="flex-1 text-xs text-green-600 hover:text-green-700 font-semibold py-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">▶ 恢復</button>`;
+  }
 
   return `
     <div data-sub-id="${escHtml(String(sub.id))}"
@@ -58,7 +78,7 @@ function buildCard(sub) {
       </div>
 
       <div class="flex items-center gap-2 flex-wrap text-xs text-gray-400 dark:text-gray-500">
-        <span>下次：${formatDate(sub.nextBillingDate)}</span>
+        ${nextBillingLine}
         ${urgentBadge}
       </div>
 
@@ -66,15 +86,16 @@ function buildCard(sub) {
       ${archived ? `<p class="text-xs text-gray-400 dark:text-gray-500">結束日期：${sub.endDate ? formatDate(sub.endDate) : '未記錄'}</p>` : ''}
 
       <div class="flex gap-2 pt-2 border-t border-gray-50 dark:border-gray-700 mt-auto">
+        ${toggleBtn}
         <button
           data-action="edit" data-id="${escHtml(String(sub.id))}"
           class="flex-1 text-xs text-indigo-600 hover:text-indigo-800 font-semibold py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
-          編輯
+          ✏️ 編輯
         </button>
         <button
           data-action="remove" data-id="${escHtml(String(sub.id))}"
           class="flex-1 text-xs text-red-500 hover:text-red-700 font-semibold py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-          移除
+          🗑️ 移除
         </button>
       </div>
     </div>`;
@@ -82,13 +103,90 @@ function buildCard(sub) {
 
 export function renderAll() {
   renderSummary();
+  renderInsights();
+  renderFilterTabs();
   renderCards();
   renderCharts();
+}
+
+export function renderFilterTabs() {
+  const all      = state.subscriptions.length;
+  const active   = state.subscriptions.filter(s => s.status === 'active').length;
+  const paused   = state.subscriptions.filter(s => s.status === 'paused').length;
+  const archived = state.subscriptions.filter(s => s.status === 'archived').length;
+  const counts   = { all, active, paused, archived };
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const key      = btn.dataset.filter;
+    const isActive = state.filter === key;
+    btn.className = isActive
+      ? 'tab-btn flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg transition-colors bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+      : 'tab-btn flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200';
+
+    const badge = btn.querySelector('.tab-count');
+    if (badge) {
+      badge.textContent = counts[key] ?? 0;
+      badge.className = isActive
+        ? 'tab-count text-xs px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
+        : 'tab-count text-xs px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-300';
+    }
+  });
+}
+
+export function renderInsights() {
+  const bar    = document.getElementById('insightsBar');
+  const active = state.subscriptions.filter(s => s.status === 'active');
+
+  const chips = [];
+
+  // Most expensive (by monthly HKD)
+  const ranked = active
+    .map(s => ({ sub: s, m: monthlyHKD(s) }))
+    .filter(r => r.m !== null)
+    .sort((a, b) => b.m - a.m);
+  if (ranked.length > 0) {
+    const top = ranked[0];
+    chips.push({
+      icon: '📈',
+      text: `最貴：${escHtml(top.sub.emoji || '📦')} ${escHtml(top.sub.name)} ${fmtHKD(top.m)}/月`,
+      cls:  'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+    });
+  }
+
+  // Next bill within 7 days
+  const upcoming = active
+    .map(s => ({ sub: s, d: daysUntil(s.nextBillingDate) }))
+    .filter(r => !isNaN(r.d) && r.d >= 0)
+    .sort((a, b) => a.d - b.d)[0];
+  if (upcoming) {
+    const urgent = upcoming.d <= 7;
+    chips.push({
+      icon: urgent ? '⚡' : '📅',
+      text: `下次扣費：${escHtml(upcoming.sub.name)}（${upcoming.d === 0 ? '今天' : upcoming.d + ' 天後'}）`,
+      cls:  urgent
+        ? 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+        : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
+    });
+  }
+
+  // Active count
+  chips.push({
+    icon: '📊',
+    text: `${active.length} 個啟用中 / ${state.subscriptions.length} 個總計`,
+    cls:  'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+  });
+
+  bar.innerHTML = chips.map(c =>
+    `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${c.cls}">
+       <span>${c.icon}</span>${c.text}
+     </span>`
+  ).join('');
 }
 
 // Updates summary + one card in-place; redraws charts only when financial data changed.
 export function renderAfterEdit(id, hasFinancialChange) {
   renderSummary();
+  renderInsights();
   const sub  = state.subscriptions.find(s => String(s.id) === String(id));
   const card = document.querySelector(`[data-sub-id="${id}"]`);
   if (sub && card) {
@@ -123,7 +221,12 @@ export function renderCards() {
   const empty  = document.getElementById('emptyState');
   let filtered = [...state.subscriptions];
   if (state.filter === 'active')   filtered = filtered.filter(s => s.status === 'active');
+  if (state.filter === 'paused')   filtered = filtered.filter(s => s.status === 'paused');
   if (state.filter === 'archived') filtered = filtered.filter(s => s.status === 'archived');
+  if (state.filter === 'all') {
+    const rank = { active: 0, paused: 1, archived: 2 };
+    filtered.sort((a, b) => (rank[a.status] ?? 3) - (rank[b.status] ?? 3));
+  }
 
   if (filtered.length === 0) {
     list.innerHTML = '';
@@ -136,7 +239,7 @@ export function renderCards() {
 
 export function renderCharts() {
   renderPieChart();
-  renderTrendChart(state.subscriptions);
+  renderRankingChart(state.subscriptions);
 }
 
 export function renderPieChart() {
@@ -189,45 +292,53 @@ export function renderPieChart() {
   );
 }
 
-export function renderTrendChart(subscriptions) {
-  const monthlyData = calcLast6MonthsSpending(subscriptions);
-  const ctx = document.getElementById('trendChart').getContext('2d');
+export function renderRankingChart(subscriptions) {
+  const ranking = calcSpendingRanking(subscriptions).slice(0, 10);
+  const ctx     = document.getElementById('rankingChart').getContext('2d');
+  const empty   = document.getElementById('rankingEmpty');
 
-  if (state.charts.trend) state.charts.trend.destroy();
+  if (state.charts.trend) { state.charts.trend.destroy(); state.charts.trend = null; }
 
-  const { gridColor, tickColor } = getChartColors();
+  if (ranking.length === 0) {
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  const { gridColor, tickColor, labelColor } = getChartColors();
 
   state.charts.trend = new Chart(ctx, {
-    type: 'line',
+    type: 'bar',
     data: {
-      labels: monthlyData.map(m => m.label),
+      labels: ranking.map(r => `${r.emoji} ${r.name}`),
       datasets: [{
-        label: '月支出 (HKD)',
-        data: monthlyData.map(m => parseFloat(m.total.toFixed(2))),
-        borderColor: '#4F46E5',
-        backgroundColor: 'rgba(79, 70, 229, 0.08)',
-        borderWidth: 2.5,
-        pointBackgroundColor: '#4F46E5',
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        fill: true,
-        tension: 0.4
+        label: '月均 (HKD)',
+        data: ranking.map(r => parseFloat(r.monthly.toFixed(2))),
+        backgroundColor: ranking.map(r => catColor(r.category)),
+        borderRadius: 6,
+        borderSkipped: false,
+        barThickness: 'flex',
+        maxBarThickness: 22
       }]
     },
     options: {
+      indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: ctx => `HK$${ctx.parsed.y.toFixed(2)}` } }
+        tooltip: { callbacks: { label: ctx => ` ${fmtHKD(ctx.parsed.x)}/月` } }
       },
       scales: {
-        y: {
+        x: {
           beginAtZero: true,
           ticks: { callback: val => `HK$${val}`, color: tickColor },
           grid: { color: gridColor }
         },
-        x: { grid: { display: false }, ticks: { color: tickColor } }
+        y: {
+          grid: { display: false },
+          ticks: { color: labelColor, font: { size: 11 } }
+        }
       }
     }
   });

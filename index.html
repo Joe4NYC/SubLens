@@ -81,52 +81,45 @@
   <!-- ============================================================ -->
   <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
-    <!-- Live Rates Bar -->
+    <!-- Live Rates Bar (compact single-line) -->
     <div id="ratesBar"
-      class="mt-4 px-4 py-3 rounded-xl bg-white dark:bg-gray-800
-             border border-gray-100 dark:border-gray-700 text-sm">
-
-      <!-- Row 1: Label + Rates all in one wrapping flex row -->
-      <div class="flex items-center justify-between mb-1">
-        <span class="text-gray-500 dark:text-gray-400 font-medium text-xs">💱 實時匯率</span>
-        <div class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-          <span>更新於 <span id="ratesUpdatedAt">--</span></span>
-          <button id="refreshRatesBtn"
-            class="text-indigo-500 hover:text-indigo-700 dark:text-indigo-400
-                   hover:underline transition ml-1">
-            ↻ 刷新
-          </button>
-        </div>
+      class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1
+             px-3 py-2 rounded-lg bg-white dark:bg-gray-800
+             border border-gray-100 dark:border-gray-700 text-xs">
+      <div class="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+        <span class="font-medium text-gray-400 dark:text-gray-500">💱</span>
+        <span>🇺🇸 USD <strong id="rateUSD" class="text-indigo-600 dark:text-indigo-400 font-semibold ml-0.5">--</strong></span>
+        <span>🇨🇳 CNY <strong id="rateCNY" class="text-indigo-600 dark:text-indigo-400 font-semibold ml-0.5">--</strong></span>
       </div>
-
-      <!-- Row 2: Two rates evenly spaced in a grid -->
-      <div class="grid grid-cols-2 gap-2 text-center">
-        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg py-1 px-2">
-          <div class="text-xs text-gray-400 dark:text-gray-500">🇺🇸 USD</div>
-          <div id="rateUSD" class="font-semibold text-indigo-600 dark:text-indigo-400">--</div>
-        </div>
-        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg py-1 px-2">
-          <div class="text-xs text-gray-400 dark:text-gray-500">🇨🇳 CNY</div>
-          <div id="rateCNY" class="font-semibold text-indigo-600 dark:text-indigo-400">--</div>
-        </div>
+      <div class="flex items-center gap-2 text-gray-400 dark:text-gray-500">
+        <span>更新於 <span id="ratesUpdatedAt">--</span></span>
+        <button id="refreshRatesBtn"
+          class="text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 hover:underline transition">
+          ↻
+        </button>
       </div>
     </div>
 
     <!-- Summary Cards -->
-    <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-        <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">每月支出</p>
-        <p id="summaryMonthly" class="text-2xl font-bold text-indigo-600">HK$0.00</p>
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Hero card: 每月支出 -->
+      <div class="overflow-hidden bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl shadow-md p-5 sm:col-span-2">
+        <p class="text-xs font-medium text-indigo-100 uppercase tracking-wide mb-2">每月支出</p>
+        <p id="summaryMonthly" class="text-4xl font-extrabold tracking-tight">HK$0.00</p>
+        <p class="text-xs text-indigo-100 mt-1">主要監控指標</p>
       </div>
       <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
         <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">每年支出</p>
-        <p id="summaryYearly" class="text-2xl font-bold text-indigo-600">HK$0.00</p>
+        <p id="summaryYearly" class="text-2xl font-bold text-gray-700 dark:text-gray-200">HK$0.00</p>
       </div>
       <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
         <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">累積支出</p>
-        <p id="summaryCumulative" class="text-2xl font-bold text-indigo-600">HK$0.00</p>
+        <p id="summaryCumulative" class="text-2xl font-bold text-gray-700 dark:text-gray-200">HK$0.00</p>
       </div>
     </section>
+
+    <!-- Quick Insights Chips -->
+    <section id="insightsBar" class="flex flex-wrap gap-2"></section>
 
     <!-- Charts -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -138,19 +131,29 @@
         </div>
       </div>
       <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-        <h2 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-4">過去 6 個月支出趨勢</h2>
+        <h2 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-4">支出排行榜（月均 HKD）</h2>
         <div class="relative h-64">
-          <canvas id="trendChart"></canvas>
+          <canvas id="rankingChart"></canvas>
+          <div id="rankingEmpty" class="hidden absolute inset-0 flex items-center justify-center text-gray-300 dark:text-gray-500 text-sm">暫無資料</div>
         </div>
       </div>
     </section>
 
     <!-- Filter Tabs + List -->
     <section>
-      <div class="flex gap-2 mb-4">
-        <button class="tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-filter="all">全部</button>
-        <button class="tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-filter="active">啟用中</button>
-        <button class="tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-filter="archived">封存</button>
+      <div class="inline-flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-4 gap-1">
+        <button class="tab-btn flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" data-filter="all">
+          全部 <span class="tab-count text-xs px-1.5 py-0.5 rounded-full">0</span>
+        </button>
+        <button class="tab-btn flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" data-filter="active">
+          啟用中 <span class="tab-count text-xs px-1.5 py-0.5 rounded-full">0</span>
+        </button>
+        <button class="tab-btn flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" data-filter="paused">
+          暫停 <span class="tab-count text-xs px-1.5 py-0.5 rounded-full">0</span>
+        </button>
+        <button class="tab-btn flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" data-filter="archived">
+          封存 <span class="tab-count text-xs px-1.5 py-0.5 rounded-full">0</span>
+        </button>
       </div>
 
       <!-- Subscription Cards Grid -->

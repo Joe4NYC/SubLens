@@ -1,8 +1,8 @@
 import { state } from './config.js';
 import { populateSelects, showModal, hideModal, showToast, syncRemoveLabels } from './ui.js';
 import { loadData, loadAndDisplayRates } from './api.js';
-import { renderCards, renderTrendChart, renderPieChart } from './render.js';
-import { openAddModal, openEditModal, openRemoveModal, closeModal, saveSubscription, confirmRemove } from './modals.js';
+import { renderCards, renderRankingChart, renderPieChart, renderFilterTabs } from './render.js';
+import { openAddModal, openEditModal, openRemoveModal, closeModal, saveSubscription, confirmRemove, pauseSubscription, resumeSubscription } from './modals.js';
 
 // ── Initialization ────────────────────────────────────────────────
 async function init() {
@@ -14,12 +14,7 @@ async function init() {
 // ── Filter Tabs ───────────────────────────────────────────────────
 function setFilter(filter) {
   state.filter = filter;
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    const active = btn.dataset.filter === filter;
-    btn.className = active
-      ? 'tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-indigo-600 text-white shadow-sm'
-      : 'tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700';
-  });
+  renderFilterTabs();
   renderCards();
 }
 
@@ -36,7 +31,7 @@ applyDarkMode(savedDark !== null ? savedDark === '1' : prefersDark);
 
 document.getElementById('darkModeToggle').addEventListener('click', () => {
   applyDarkMode(!document.documentElement.classList.contains('dark'));
-  renderTrendChart(state.subscriptions);
+  renderRankingChart(state.subscriptions);
   renderPieChart();
 });
 
@@ -44,11 +39,16 @@ document.getElementById('darkModeToggle').addEventListener('click', () => {
 document.getElementById('subscriptionList').addEventListener('click', e => {
   const editBtn   = e.target.closest("[data-action='edit']");
   const removeBtn = e.target.closest("[data-action='remove']");
+  const pauseBtn  = e.target.closest("[data-action='pause']");
+  const resumeBtn = e.target.closest("[data-action='resume']");
   if (editBtn)   openEditModal(editBtn.dataset.id);
   if (removeBtn) openRemoveModal(removeBtn.dataset.id);
+  if (pauseBtn)  pauseSubscription(pauseBtn.dataset.id);
+  if (resumeBtn) resumeSubscription(resumeBtn.dataset.id);
 });
 
 document.getElementById('btnAdd').addEventListener('click', openAddModal);
+document.getElementById('refreshRatesBtn').addEventListener('click', loadAndDisplayRates);
 document.getElementById('btnCloseModal').addEventListener('click', closeModal);
 document.getElementById('btnCancelModal').addEventListener('click', closeModal);
 document.getElementById('subscriptionForm').addEventListener('submit', saveSubscription);

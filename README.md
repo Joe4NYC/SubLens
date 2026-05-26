@@ -78,7 +78,7 @@ sublens/
 
 **`subscriptions` 分頁：**
 ```
-id | name | category | emoji | billingCycle | amount | currency | startDate | endDate | nextBillingDate | status | notes
+id | name | category | emoji | billingCycle | amount | currency | startDate | endDate | pausedDate | nextBillingDate | status | notes
 ```
 
 **`rates` 分頁：**
@@ -151,8 +151,9 @@ Apps Script URL 一旦公開，任何人都可存取你的資料。建議啟用 
 | `currency` | string | `HKD` / `USD` / `CNY` |
 | `startDate` | string | 開始日期（ISO 格式）|
 | `endDate` | string | 結束日期（封存時填入）|
+| `pausedDate` | string | 暫停日期（暫停時填入；恢復時清空）|
 | `nextBillingDate` | string | 下次扣費日期 |
-| `status` | string | `active` 或 `archived` |
+| `status` | string | `active` / `paused` / `archived` |
 | `notes` | string | 備註（選填）|
 
 ---

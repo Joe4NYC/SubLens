@@ -1,6 +1,6 @@
 import { state } from './config.js';
 import { toHKD } from './currency.js';
-import { clampDay, billingCyclesBetween } from './dates.js';
+import { billingCyclesBetween } from './dates.js';
 
 export function monthlyHKD(sub) {
   const hkd = toHKD(sub.amount, sub.currency);
@@ -32,16 +32,17 @@ export function calcCumulative(subscriptions) {
   today.setHours(0, 0, 0, 0);
 
   return subscriptions
-    .filter(sub => sub.status === 'active' || sub.status === 'archived')
+    .filter(sub => sub.status === 'active' || sub.status === 'archived' || sub.status === 'paused')
     .reduce((total, sub) => {
       const dateStr = String(sub.startDate).split('T')[0];
       const start   = new Date(dateStr + 'T00:00:00');
       if (isNaN(start.getTime())) return total;
 
-      const endDateStr = sub.endDate ? String(sub.endDate).split('T')[0] : null;
-      const end = (endDateStr && sub.status === 'archived')
-        ? new Date(endDateStr + 'T00:00:00')
-        : today;
+      // Use pausedDate for paused subs, endDate for archived, today for active
+      let endStr = null;
+      if (sub.status === 'archived' && sub.endDate)    endStr = String(sub.endDate).split('T')[0];
+      else if (sub.status === 'paused' && sub.pausedDate) endStr = String(sub.pausedDate).split('T')[0];
+      const end = endStr ? new Date(endStr + 'T00:00:00') : today;
 
       const cycles = billingCyclesBetween(start, end, sub.billingCycle);
       const amount = toHKD(sub.amount, sub.currency);
@@ -50,50 +51,17 @@ export function calcCumulative(subscriptions) {
     }, 0);
 }
 
-export function calcLast6MonthsSpending(subscriptions) {
-  const months = [];
-
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(1);
-    d.setMonth(d.getMonth() - i);
-    months.push({
-      year:  d.getFullYear(),
-      month: d.getMonth(),
-      label: `${d.getMonth() + 1}月`,
-      total: 0
-    });
-  }
-
-  subscriptions.forEach(sub => {
-    if (!sub.startDate) return;
-    const start     = new Date(String(sub.startDate).split('T')[0]);
-    const end       = sub.endDate ? new Date(String(sub.endDate).split('T')[0]) : new Date();
-    const amountHKD = toHKD(parseFloat(sub.amount) || 0, sub.currency);
-    if (amountHKD === null) return;
-
-    months.forEach(m => {
-      const monthStart = new Date(m.year, m.month, 1);
-      const monthEnd   = new Date(m.year, m.month + 1, 0);
-
-      if (start > monthEnd || end < monthStart) return;
-
-      if (sub.billingCycle === 'monthly') {
-        const billingDay = clampDay(m.year, m.month, start.getDate());
-        if (billingDay >= monthStart && billingDay <= monthEnd &&
-            billingDay >= start && billingDay <= end) {
-          m.total += amountHKD;
-        }
-      } else if (sub.billingCycle === 'yearly') {
-        const billingDay = clampDay(m.year, start.getMonth(), start.getDate());
-        if (billingDay.getMonth() === m.month &&
-            billingDay.getFullYear() === m.year &&
-            billingDay >= start && billingDay <= end) {
-          m.total += amountHKD;
-        }
-      }
-    });
-  });
-
-  return months;
+export function calcSpendingRanking(subscriptions) {
+  return subscriptions
+    .filter(s => s.status === 'active')
+    .map(s => ({
+      id: s.id,
+      name: s.name,
+      emoji: s.emoji || '📦',
+      category: s.category || '其他',
+      monthly: monthlyHKD(s)
+    }))
+    .filter(r => r.monthly !== null && r.monthly > 0)
+    .sort((a, b) => b.monthly - a.monthly);
 }
+

@@ -131,6 +131,29 @@ export function openRemoveModal(id) {
   showModal('removeModalOverlay');
 }
 
+export async function pauseSubscription(id) {
+  const sub = state.subscriptions.find(s => String(s.id) === String(id));
+  if (!sub || sub.status !== 'active') return;
+  const pausedDate = todayISO();
+  const result = await apiFetch('updateSubscription', { id, status: 'paused', pausedDate });
+  if (result === null) return;
+  sub.status     = 'paused';
+  sub.pausedDate = pausedDate;
+  showToast('訂閱已暫停', 'success');
+  renderAll();
+}
+
+export async function resumeSubscription(id) {
+  const sub = state.subscriptions.find(s => String(s.id) === String(id));
+  if (!sub || sub.status !== 'paused') return;
+  const result = await apiFetch('updateSubscription', { id, status: 'active', pausedDate: '' });
+  if (result === null) return;
+  sub.status     = 'active';
+  sub.pausedDate = '';
+  showToast('訂閱已恢復', 'success');
+  renderAll();
+}
+
 export async function confirmRemove() {
   const mode        = document.querySelector('input[name="removeMode"]:checked').value;
   const deleteBills = mode === 'delete';
