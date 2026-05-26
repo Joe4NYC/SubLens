@@ -24,7 +24,7 @@ SubLens 是一個純前端的互動網頁應用，幫助你追蹤所有軟件訂
 
 | 淺色模式 | 深色模式 |
 |---------|---------|
-| ![Light Mode](screenshots/light.png) | ![Dark Mode](screenshots/dark.png) |
+| ![Light Mode](screenshots/light.jpg) | ![Dark Mode](screenshots/dark.jpg) |
 
 ---
 
