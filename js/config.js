@@ -3,8 +3,7 @@ export const CONFIG = {
   DEFAULT_CURRENCY: "HKD",
   RATES: {
     USDHKD: 7.78,  // fallback if API fails
-    CNYHKD: 1.07,
-    EURHKD: 8.45
+    CNYHKD: 1.07
   }
 };
 
@@ -17,17 +16,9 @@ export const state = {
 };
 
 export const CURRENCY_FLAGS = {
+  HKD: '🇭🇰',
   USD: '🇺🇸',
   CNY: '🇨🇳',
-  EUR: '🇪🇺',
-  HKD: '🇭🇰',
-  GBP: '🇬🇧',
-  JPY: '🇯🇵',
-  TWD: '🇹🇼',
-  KRW: '🇰🇷',
-  SGD: '🇸🇬',
-  AUD: '🇦🇺',
-  CAD: '🇨🇦',
 };
 
 export const CATEGORIES = ['娛樂', '工作效率', '雲端儲存', 'AI工具', '其他'];

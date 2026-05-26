@@ -10,7 +10,7 @@ SubLens 是一個純前端的互動網頁應用，幫助你追蹤所有軟件訂
 
 - 📋 **訂閱管理** — 新增、編輯、移除訂閱，支援封存並保留記錄
 - 💸 **三種支出總覽** — 每月 / 每年 / 累積支出，自動換算至 HKD
-- 🌍 **11 種貨幣** — HKD、USD、CNY、EUR、GBP、JPY、TWD、KRW、SGD、AUD、CAD，每張卡片顯示原幣及 HKD 換算值
+- 🌍 **多貨幣支援** — HKD、USD、CNY，每張卡片顯示原幣及 HKD 換算值
 - 📈 **實時匯率** — 透過 Google Sheets GOOGLEFINANCE 函數取得即時市場匯率
 - 📊 **視覺化圖表** — 分類支出圓餅圖 + 過去 6 個月趨勢折線圖
 - 🔑 **API Token 保護** — 可選啟用密鑰驗證，防止未授權存取 Google Sheet
@@ -87,9 +87,6 @@ id | name | category | emoji | billingCycle | amount | currency | startDate | en
 |---|---|
 | USDHKD | `=GOOGLEFINANCE("CURRENCY:USDHKD")` |
 | CNYHKD | `=GOOGLEFINANCE("CURRENCY:CNYHKD")` |
-| EURHKD | `=GOOGLEFINANCE("CURRENCY:EURHKD")` |
-
-> 可按需加入更多貨幣對，如 GBPHKD、JPYHKD 等，前端會自動讀取。
 
 ### 第二步：部署 Apps Script
 
@@ -151,7 +148,7 @@ Apps Script URL 一旦公開，任何人都可存取你的資料。建議啟用 
 | `emoji` | string | 顯示圖示（如 🎬）|
 | `billingCycle` | string | `monthly` 或 `yearly` |
 | `amount` | number | 金額 |
-| `currency` | string | HKD / USD / CNY / EUR / GBP / JPY / TWD / KRW / SGD / AUD / CAD |
+| `currency` | string | `HKD` / `USD` / `CNY` |
 | `startDate` | string | 開始日期（ISO 格式）|
 | `endDate` | string | 結束日期（封存時填入）|
 | `nextBillingDate` | string | 下次扣費日期 |

@@ -49,7 +49,7 @@ export async function loadData() {
 }
 
 export async function loadAndDisplayRates() {
-  ['rateUSD', 'rateCNY', 'rateEUR'].forEach(id => {
+  ['rateUSD', 'rateCNY'].forEach(id => {
     document.getElementById(id).textContent = '...';
   });
 
@@ -61,7 +61,6 @@ export async function loadAndDisplayRates() {
 
     document.getElementById('rateUSD').textContent = rates.USDHKD ? rates.USDHKD.toFixed(4) : 'N/A';
     document.getElementById('rateCNY').textContent = rates.CNYHKD ? rates.CNYHKD.toFixed(4) : 'N/A';
-    document.getElementById('rateEUR').textContent = rates.EURHKD ? rates.EURHKD.toFixed(4) : 'N/A';
 
     const now = new Date();
     document.getElementById('ratesUpdatedAt').textContent =
@@ -70,7 +69,7 @@ export async function loadAndDisplayRates() {
     renderAll();
     console.log('✅ Live rates loaded:', CONFIG.RATES);
   } catch (e) {
-    ['rateUSD', 'rateCNY', 'rateEUR'].forEach(id => {
+    ['rateUSD', 'rateCNY'].forEach(id => {
       document.getElementById(id).textContent = 'N/A';
     });
     document.getElementById('ratesUpdatedAt').textContent = '獲取失敗';
