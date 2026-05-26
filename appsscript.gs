@@ -13,6 +13,13 @@ const SHEET_BILLS = 'bills';
 // ============================================================
 
 function doGet(e) {
+  const storedToken = PropertiesService.getScriptProperties().getProperty('TOKEN');
+  if (storedToken && e.parameter.token !== storedToken) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ error: 'unauthorized' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   const action = e.parameter.action;
   let result;
 
