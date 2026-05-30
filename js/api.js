@@ -1,6 +1,7 @@
 import { CONFIG, state, getToken } from './config.js';
 import { showToast, showModal } from './ui.js';
 import { renderAll } from './render.js';
+import { isDemoMode, demoFetch } from './demo.js';
 
 let spinnerDepth = 0;
 
@@ -10,6 +11,12 @@ export async function apiFetch(action, data = null) {
   spinnerDepth++;
   document.getElementById('apiSpinner').classList.remove('hidden');
   try {
+    // Demo 模式：改由本機 localStorage 模擬，不發出網路請求
+    if (isDemoMode()) {
+      const result = await demoFetch(action, data);
+      if (result && result.error) throw new Error(result.error);
+      return result;
+    }
     let url = `${CONFIG.API_URL}?action=${encodeURIComponent(action)}`;
     const token = getToken();
     if (token) url += `&token=${encodeURIComponent(token)}`;
@@ -35,13 +42,14 @@ export async function apiFetch(action, data = null) {
   }
 }
 
+// API 是否已設定（未填或仍為佔位字串視為未設定）
+export function isApiConfigured() {
+  const url = CONFIG.API_URL || '';
+  return url.startsWith('https://script.google.com/macros/s/') &&
+         !url.includes('YOUR_DEPLOYMENT_ID');
+}
+
 export async function loadData() {
-  if (CONFIG.API_URL === 'https://script.google.com/macros/library/d/19jY9_w1DV4NgHSWRxxMnxLaksAru240q0QM0nGR3ED6nF9o_KbgwYemK/2') {
-    showToast('請先在 CONFIG.API_URL 填入 Apps Script 網址', 'error');
-    document.getElementById('loadingOverlay').style.display = 'none';
-    renderAll();
-    return;
-  }
   const subs = await apiFetch('getSubscriptions');
   state.subscriptions = Array.isArray(subs) ? subs : [];
   renderAll();

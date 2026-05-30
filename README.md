@@ -13,6 +13,7 @@ SubLens 是一個純前端的互動網頁應用，幫助你追蹤所有軟件訂
 - 🌍 **多貨幣支援** — HKD、USD、CNY，每張卡片顯示原幣及 HKD 換算值
 - 📈 **實時匯率** — 透過 Google Sheets GOOGLEFINANCE 函數取得即時市場匯率
 - 📊 **視覺化圖表** — 分類支出圓餅圖 + 過去 6 個月趨勢折線圖
+- 🧪 **Demo 模式** — 未設定 Google Sheets 也能用範例資料即時試用，資料僅存本機
 - 🔑 **API Token 保護** — 可選啟用密鑰驗證，防止未授權存取 Google Sheet
 - 🌙 **深色/淺色模式** — 一鍵切換，自動記住偏好設定
 - 📱 **響應式設計** — 桌面及手機版完整支援
@@ -54,6 +55,7 @@ sublens/
 │   ├── ui.js           # UI 通用功能（toast、modal ARIA、select）
 │   ├── render.js       # DOM 渲染（卡片、圖表、摘要）
 │   ├── api.js          # API 請求、資料載入
+│   ├── demo.js         # Demo 模式（本機範例資料、模擬 API）
 │   ├── modals.js       # 新增／編輯／移除 Modal 邏輯
 │   └── main.js         # 初始化、事件監聽
 ├── appsscript.gs       # Google Apps Script 後端代碼
@@ -175,6 +177,7 @@ Apps Script URL 一旦公開，任何人都可存取你的資料。建議啟用 
 | v1.1 | 2026-04-14 | 新增實時匯率、國旗顯示、深色模式 |
 | v1.2 | 2026-04-14 | 修復日期顯示、趨勢圖計算、響應式佈局 |
 | v2.0 | 2026-05-26 | 重大重構：ES 模組拆分（9 個 JS 檔）、修正月底帳日翻月 bug、移除廢棄 bills 系統、API Token 認證、Modal ARIA + Esc、統一輸入驗證、局部 DOM 更新優化 |
+| v2.1 | 2026-05-30 | 新增 Demo 模式：無需 API 即可用範例資料試用，資料存於本機 localStorage |
 
 ---
 
