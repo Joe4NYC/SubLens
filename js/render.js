@@ -1,10 +1,10 @@
 import { state, CAT_COLORS } from './config.js';
 import { monthlyHKD, calcSummary, calcSpendingRanking } from './calc.js';
-import { fmtHKD, formatAmount } from './currency.js';
+import { fmtHKD, fmtNum } from './currency.js';
 import { daysUntil, formatDate } from './dates.js';
 import { escHtml } from './ui.js';
 
-// Fields that affect financial totals and charts; others (e.g. notes) only need a card redraw.
+// Fields that affect financial totals and subtotals; others (e.g. notes) only need a row redraw.
 const FINANCIAL_FIELDS = ['amount', 'currency', 'billingCycle', 'status', 'startDate', 'endDate'];
 
 export function financialChanged(oldSub, newData) {
@@ -12,93 +12,91 @@ export function financialChanged(oldSub, newData) {
 }
 
 function catColor(cat) {
-  return CAT_COLORS[cat] || '#a855f7';
+  return CAT_COLORS[cat] || CAT_COLORS['其他'];
 }
 
-function getChartColors() {
-  const isDark = document.documentElement.classList.contains('dark');
-  return {
-    gridColor:   isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-    tickColor:   isDark ? '#9CA3AF' : '#6B7280',
-    labelColor:  isDark ? '#D1D5DB' : '#374151',
-    borderColor: isDark ? '#1F2937' : '#fff'
-  };
+function icon(name) {
+  return `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 }
 
-// Builds the HTML string for a single subscription card.
-function buildCard(sub) {
+function shortDate(dateStr) {
+  const d = new Date(String(dateStr).split('T')[0] + 'T00:00:00');
+  return isNaN(d) ? '' : d.toLocaleDateString('zh-HK', { month: 'short', day: 'numeric' });
+}
+
+function relDays(d) {
+  if (d === 0) return '今天';
+  if (d === 1) return '明天';
+  return `${d} 天後`;
+}
+
+// Largest active monthly figure, used to scale each row's proportion bar.
+function maxMonthly() {
+  return Math.max(0, ...state.subscriptions
+    .filter(s => s.status === 'active')
+    .map(s => monthlyHKD(s) ?? 0));
+}
+
+// Builds the HTML string for a single ledger row.
+function buildCard(sub, max = maxMonthly()) {
   const archived = sub.status === 'archived';
   const paused   = sub.status === 'paused';
   const active   = sub.status === 'active';
+  const id       = escHtml(String(sub.id));
+  const name     = escHtml(sub.name);
 
-  const days        = daysUntil(sub.nextBillingDate);
-  const urgentBadge = (active && days >= 0 && days <= 7)
-    ? `<span class="text-xs font-semibold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">⚡ ${days}天後扣費</span>`
-    : '';
-  const cycleLbl   = sub.billingCycle === 'yearly' ? '每年' : '每月';
+  const m        = monthlyHKD(sub);
+  const cycleLbl = sub.billingCycle === 'yearly' ? '每年' : '每月';
+  const amount   = parseFloat(sub.amount) || 0;
+  const days     = daysUntil(sub.nextBillingDate);
 
-  let statusCls, statusLbl;
-  if (archived) { statusCls = 'bg-gray-100 text-gray-500';   statusLbl = '封存'; }
-  else if (paused)   { statusCls = 'bg-amber-100 text-amber-700'; statusLbl = '⏸ 暫停'; }
-  else               { statusCls = 'bg-green-100 text-green-700'; statusLbl = '啟用中'; }
-  const cardOpacity = archived ? 'opacity-60' : (paused ? 'opacity-75' : '');
+  let next;
+  if (archived)    next = `<span class="status archived">已封存</span>`;
+  else if (paused) next = `<span class="status paused">暫停</span> ${sub.pausedDate ? formatDate(sub.pausedDate) : ''}`;
+  else             next = `${formatDate(sub.nextBillingDate)}${days >= 0 && days <= 7 ? `・${relDays(days)}` : ''}`;
+  const soon = active && days >= 0 && days <= 7;
 
-  const nextBillingLine = paused
-    ? `<span class="text-amber-600 dark:text-amber-400">已暫停（${sub.pausedDate ? formatDate(sub.pausedDate) : '今天'}）</span>`
-    : `<span>下次：${formatDate(sub.nextBillingDate)}</span>`;
+  const barWidth = active && m && max ? Math.max(2, Math.round((m / max) * 100)) : 0;
 
-  // Pause/Resume button — only shown for active or paused, not archived
+  const note = archived
+    ? `結束：${sub.endDate ? formatDate(sub.endDate) : '未記錄'}${sub.notes ? `・${escHtml(String(sub.notes))}` : ''}`
+    : (sub.notes ? escHtml(String(sub.notes)) : '');
+
   let toggleBtn = '';
   if (active) {
-    toggleBtn = `<button data-action="pause" data-id="${escHtml(String(sub.id))}"
-      class="flex-1 text-xs text-amber-600 hover:text-amber-700 font-semibold py-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">⏸ 暫停</button>`;
+    toggleBtn = `<button data-action="pause" data-id="${id}" class="icon-btn sm" title="暫停" aria-label="暫停 ${name}">${icon('pause')}</button>`;
   } else if (paused) {
-    toggleBtn = `<button data-action="resume" data-id="${escHtml(String(sub.id))}"
-      class="flex-1 text-xs text-green-600 hover:text-green-700 font-semibold py-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">▶ 恢復</button>`;
+    toggleBtn = `<button data-action="resume" data-id="${id}" class="icon-btn sm" title="恢復" aria-label="恢復 ${name}">${icon('play')}</button>`;
   }
 
   return `
-    <div data-sub-id="${escHtml(String(sub.id))}"
-      class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 flex flex-col gap-3 hover:shadow-md transition-shadow ${cardOpacity}">
-      <div class="flex items-start justify-between gap-2">
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="text-3xl leading-none">${escHtml(sub.emoji || '📦')}</span>
-          <div class="min-w-0">
-            <p class="font-semibold text-gray-800 dark:text-gray-100 truncate text-sm">${escHtml(sub.name)}</p>
-            <span class="inline-block text-xs px-2 py-0.5 rounded-full text-white font-medium mt-0.5"
-              style="background-color:${catColor(sub.category)}">${escHtml(sub.category)}</span>
+    <tr data-sub-id="${escHtml(String(sub.id))}" class="row-${escHtml(sub.status)}">
+      <td class="cell-item">
+        <div class="item">
+          <span class="item-emoji" aria-hidden="true">${escHtml(sub.emoji || '📦')}</span>
+          <div class="min-w">
+            <p class="item-name">${name}</p>
+            ${note ? `<p class="item-note">${note}</p>` : ''}
           </div>
         </div>
-        <span class="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${statusCls}">${statusLbl}</span>
-      </div>
-
-      <div class="flex items-baseline justify-between">
-        <span class="text-base font-bold text-gray-800 dark:text-gray-100 amount-display">${formatAmount(sub.amount, sub.currency)}</span>
-        <span class="text-xs text-gray-400 dark:text-gray-500">${cycleLbl}</span>
-      </div>
-
-      <div class="flex items-center gap-2 flex-wrap text-xs text-gray-400 dark:text-gray-500">
-        ${nextBillingLine}
-        ${urgentBadge}
-      </div>
-
-      ${sub.notes ? `<p class="text-xs text-gray-400 dark:text-gray-500 truncate">${escHtml(String(sub.notes))}</p>` : ''}
-      ${archived ? `<p class="text-xs text-gray-400 dark:text-gray-500">結束日期：${sub.endDate ? formatDate(sub.endDate) : '未記錄'}</p>` : ''}
-
-      <div class="flex gap-2 pt-2 border-t border-gray-50 dark:border-gray-700 mt-auto">
-        ${toggleBtn}
-        <button
-          data-action="edit" data-id="${escHtml(String(sub.id))}"
-          class="flex-1 text-xs text-indigo-600 hover:text-indigo-800 font-semibold py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
-          ✏️ 編輯
-        </button>
-        <button
-          data-action="remove" data-id="${escHtml(String(sub.id))}"
-          class="flex-1 text-xs text-red-500 hover:text-red-700 font-semibold py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-          🗑️ 移除
-        </button>
-      </div>
-    </div>`;
+      </td>
+      <td class="col-cat"><span class="cat"><span class="swatch" style="background:${catColor(sub.category)}"></span>${escHtml(sub.category)}</span></td>
+      <td class="col-cycle"><span class="cycle">${cycleLbl}</span></td>
+      <td class="col-orig r"><span class="orig num"><span class="code">${escHtml(sub.currency)}</span>${fmtNum(amount)}</span></td>
+      <td class="cell-monthly r">
+        <span class="monthly num"><span class="monthly-figure">${m === null ? '匯率未知' : fmtNum(m)}</span></span>
+        ${barWidth ? `<span class="monthly-track" aria-hidden="true"><span class="monthly-bar" style="width:${barWidth}%"></span></span>` : ''}
+      </td>
+      <td class="col-next"><span class="next num${soon ? ' is-soon' : ''}">${next}</span></td>
+      <td class="cell-meta">${escHtml(sub.currency)} ${fmtNum(amount)}/${sub.billingCycle === 'yearly' ? '年' : '月'}・${archived ? '已封存' : paused ? '暫停中' : `<span class="${soon ? 'next is-soon' : ''}">${shortDate(sub.nextBillingDate)}</span>`}</td>
+      <td class="cell-actions">
+        <div class="actions">
+          ${toggleBtn}
+          <button data-action="edit" data-id="${id}" class="icon-btn sm" title="編輯" aria-label="編輯 ${name}">${icon('pencil')}</button>
+          <button data-action="remove" data-id="${id}" class="icon-btn sm danger" title="移除" aria-label="移除 ${name}">${icon('trash')}</button>
+        </div>
+      </td>
+    </tr>`;
 }
 
 export function renderAll() {
@@ -106,240 +104,149 @@ export function renderAll() {
   renderInsights();
   renderFilterTabs();
   renderCards();
-  renderCharts();
+  renderSubtotals();
 }
 
 export function renderFilterTabs() {
-  const all      = state.subscriptions.length;
-  const active   = state.subscriptions.filter(s => s.status === 'active').length;
-  const paused   = state.subscriptions.filter(s => s.status === 'paused').length;
-  const archived = state.subscriptions.filter(s => s.status === 'archived').length;
-  const counts   = { all, active, paused, archived };
+  const counts = { all: state.subscriptions.length, active: 0, paused: 0, archived: 0 };
+  state.subscriptions.forEach(s => { if (s.status in counts) counts[s.status]++; });
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
     const key      = btn.dataset.filter;
     const isActive = state.filter === key;
-    btn.className = isActive
-      ? 'tab-btn flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg transition-colors bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
-      : 'tab-btn flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200';
-
+    btn.classList.toggle('is-active', isActive);
+    btn.setAttribute('aria-selected', String(isActive));
     const badge = btn.querySelector('.tab-count');
-    if (badge) {
-      badge.textContent = counts[key] ?? 0;
-      badge.className = isActive
-        ? 'tab-count text-xs px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
-        : 'tab-count text-xs px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-300';
-    }
+    if (badge) badge.textContent = counts[key] ?? 0;
   });
+
+  const parts = [`${counts.active} 項啟用`];
+  if (counts.paused)   parts.push(`${counts.paused} 項暫停`);
+  if (counts.archived) parts.push(`${counts.archived} 項封存`);
+  document.getElementById('accountCount').textContent = parts.join('・');
 }
 
+// The next-debit line under the statement head.
 export function renderInsights() {
-  const bar    = document.getElementById('insightsBar');
-  const active = state.subscriptions.filter(s => s.status === 'active');
-
-  const chips = [];
-
-  // Most expensive (by monthly HKD)
-  const ranked = active
-    .map(s => ({ sub: s, m: monthlyHKD(s) }))
-    .filter(r => r.m !== null)
-    .sort((a, b) => b.m - a.m);
-  if (ranked.length > 0) {
-    const top = ranked[0];
-    chips.push({
-      icon: '📈',
-      text: `最貴：${escHtml(top.sub.emoji || '📦')} ${escHtml(top.sub.name)} ${fmtHKD(top.m)}/月`,
-      cls:  'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-    });
-  }
-
-  // Next bill within 7 days
-  const upcoming = active
+  const el = document.getElementById('nextDebit');
+  const upcoming = state.subscriptions
+    .filter(s => s.status === 'active')
     .map(s => ({ sub: s, d: daysUntil(s.nextBillingDate) }))
     .filter(r => !isNaN(r.d) && r.d >= 0)
-    .sort((a, b) => a.d - b.d)[0];
-  if (upcoming) {
-    const urgent = upcoming.d <= 7;
-    chips.push({
-      icon: urgent ? '⚡' : '📅',
-      text: `下次扣費：${escHtml(upcoming.sub.name)}（${upcoming.d === 0 ? '今天' : upcoming.d + ' 天後'}）`,
-      cls:  urgent
-        ? 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
-        : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
-    });
+    .sort((a, b) => a.d - b.d);
+
+  if (upcoming.length === 0) {
+    el.className = 'next-debit is-quiet';
+    el.innerHTML = `<span class="next-debit-tag">下一筆扣款</span><span class="muted">沒有已排期的扣款</span>`;
+    return;
   }
 
-  // Active count
-  chips.push({
-    icon: '📊',
-    text: `${active.length} 個啟用中 / ${state.subscriptions.length} 個總計`,
-    cls:  'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-  });
-
-  bar.innerHTML = chips.map(c =>
-    `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${c.cls}">
-       <span>${c.icon}</span>${c.text}
-     </span>`
-  ).join('');
+  const { sub, d } = upcoming[0];
+  const soonCount  = upcoming.filter(r => r.d <= 7).length;
+  const amount     = `${escHtml(sub.currency)} ${fmtNum(parseFloat(sub.amount) || 0)}`;
+  el.className = d <= 7 ? 'next-debit' : 'next-debit is-quiet';
+  el.innerHTML = `
+    <span class="next-debit-tag">下一筆扣款</span>
+    <span><strong>${escHtml(sub.name)}</strong></span>
+    <span class="num">${formatDate(sub.nextBillingDate)}（${relDays(d)}）</span>
+    <span class="num">${amount}</span>
+    ${soonCount > 1 ? `<span class="muted">7 天內共 ${soonCount} 筆</span>` : ''}`;
 }
 
-// Updates summary + one card in-place; redraws charts only when financial data changed.
+// Updates summary + one row in-place; redraws subtotals only when financial data changed.
 export function renderAfterEdit(id, hasFinancialChange) {
   renderSummary();
   renderInsights();
   const sub  = state.subscriptions.find(s => String(s.id) === String(id));
   const card = document.querySelector(`[data-sub-id="${id}"]`);
-  if (sub && card) {
+  if (sub && card && !hasFinancialChange) {
     card.outerHTML = buildCard(sub);
   } else {
-    renderCards(); // fallback: full re-render if card not found in DOM
+    renderCards(); // amounts changed: order, bars and the total row all move
   }
-  if (hasFinancialChange) renderCharts();
+  if (hasFinancialChange) renderSubtotals();
 }
 
 export function renderSummary() {
   const { monthly, yearly, cumulative, unknownCurrencies } = calcSummary();
-  document.getElementById('summaryMonthly').textContent    = fmtHKD(monthly);
+  document.getElementById('summaryMonthly').textContent    = fmtNum(monthly);
   document.getElementById('summaryYearly').textContent     = fmtHKD(yearly);
   document.getElementById('summaryCumulative').textContent = fmtHKD(cumulative);
+  document.getElementById('statementDate').textContent     = formatDate(new Date().toISOString());
 
-  let warn = document.getElementById('summaryWarning');
-  if (!warn) {
-    warn = document.createElement('p');
-    warn.id = 'summaryWarning';
-    warn.className = 'text-xs text-amber-600 dark:text-amber-400 text-center';
-    document.getElementById('summaryMonthly').closest('section').after(warn);
-  }
+  const warn = document.getElementById('summaryWarning');
   warn.hidden = unknownCurrencies.size === 0;
   if (unknownCurrencies.size > 0) {
-    warn.textContent = `⚠️ ${[...unknownCurrencies].join('、')} 匯率未知，已從總計中排除`;
+    warn.textContent = `${[...unknownCurrencies].join('、')} 匯率未知，已從總計中排除`;
   }
 }
 
 export function renderCards() {
-  const list   = document.getElementById('subscriptionList');
-  const empty  = document.getElementById('emptyState');
-  let filtered = [...state.subscriptions];
-  if (state.filter === 'active')   filtered = filtered.filter(s => s.status === 'active');
-  if (state.filter === 'paused')   filtered = filtered.filter(s => s.status === 'paused');
-  if (state.filter === 'archived') filtered = filtered.filter(s => s.status === 'archived');
-  if (state.filter === 'all') {
-    const rank = { active: 0, paused: 1, archived: 2 };
-    filtered.sort((a, b) => (rank[a.status] ?? 3) - (rank[b.status] ?? 3));
-  }
+  const list  = document.getElementById('subscriptionList');
+  const foot  = document.getElementById('ledgerTotal');
+  const empty = document.getElementById('emptyState');
+
+  const rank = { active: 0, paused: 1, archived: 2 };
+  const filtered = state.subscriptions
+    .filter(s => state.filter === 'all' || s.status === state.filter)
+    .sort((a, b) =>
+      (rank[a.status] ?? 3) - (rank[b.status] ?? 3) ||
+      (monthlyHKD(b) ?? 0) - (monthlyHKD(a) ?? 0));
 
   if (filtered.length === 0) {
     list.innerHTML = '';
+    foot.innerHTML = '';
     empty.classList.remove('hidden');
     return;
   }
   empty.classList.add('hidden');
-  list.innerHTML = filtered.map(buildCard).join('');
+  const max = maxMonthly();
+  list.innerHTML = filtered.map(s => buildCard(s, max)).join('');
+
+  // The ledger's column sums to the amount-due box: only active rows count.
+  const showTotal = state.filter === 'all' || state.filter === 'active';
+  foot.innerHTML = showTotal ? `
+    <tr>
+      <td colspan="4" class="total-label">每月支出合計<small>啟用中項目，港幣</small></td>
+      <td class="r"><span class="total-figure num">${fmtHKD(calcSummary().monthly)}</span></td>
+      <td colspan="2" class="spacer"></td>
+    </tr>` : '';
 }
 
-export function renderCharts() {
-  renderPieChart();
-  renderRankingChart(state.subscriptions);
-}
-
-export function renderPieChart() {
-  const active = state.subscriptions.filter(s => s.status === 'active');
-  const byCat  = {};
-  active.forEach(s => {
-    const m = monthlyHKD(s);
-    if (m === null) return;
-    const k = s.category || '其他';
-    byCat[k] = (byCat[k] || 0) + m;
+// Category subtotals: one segmented bar plus a ruled table.
+export function renderSubtotals() {
+  const el = document.getElementById('categoryBreakdown');
+  const byCat = {};
+  calcSpendingRanking(state.subscriptions).forEach(r => {
+    byCat[r.category] ??= { total: 0, count: 0 };
+    byCat[r.category].total += r.monthly;
+    byCat[r.category].count += 1;
   });
 
-  const labels   = Object.keys(byCat);
-  const data     = labels.map(k => byCat[k]);
-  const colors   = labels.map(l => catColor(l));
-  const pieEmpty = document.getElementById('pieEmpty');
+  const rows  = Object.entries(byCat).sort((a, b) => b[1].total - a[1].total);
+  const total = rows.reduce((t, [, v]) => t + v.total, 0);
 
-  if (state.charts.pie) { state.charts.pie.destroy(); state.charts.pie = null; }
-
-  if (labels.length === 0) {
-    pieEmpty.classList.remove('hidden');
+  if (rows.length === 0) {
+    el.innerHTML = `<p class="empty-note">還沒有啟用中的訂閱。</p>`;
     return;
   }
-  pieEmpty.classList.add('hidden');
 
-  const { borderColor, labelColor } = getChartColors();
-
-  state.charts.pie = new Chart(
-    document.getElementById('pieChart').getContext('2d'),
-    {
-      type: 'doughnut',
-      data: {
-        labels,
-        datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { boxWidth: 12, font: { size: 11 }, padding: 12, color: labelColor }
-          },
-          tooltip: {
-            callbacks: { label: ctx => ` ${ctx.label}: ${fmtHKD(ctx.parsed)}/月` }
-          }
-        }
-      }
-    }
-  );
-}
-
-export function renderRankingChart(subscriptions) {
-  const ranking = calcSpendingRanking(subscriptions).slice(0, 10);
-  const ctx     = document.getElementById('rankingChart').getContext('2d');
-  const empty   = document.getElementById('rankingEmpty');
-
-  if (state.charts.trend) { state.charts.trend.destroy(); state.charts.trend = null; }
-
-  if (ranking.length === 0) {
-    empty.classList.remove('hidden');
-    return;
-  }
-  empty.classList.add('hidden');
-
-  const { gridColor, tickColor, labelColor } = getChartColors();
-
-  state.charts.trend = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: ranking.map(r => `${r.emoji} ${r.name}`),
-      datasets: [{
-        label: '月均 (HKD)',
-        data: ranking.map(r => parseFloat(r.monthly.toFixed(2))),
-        backgroundColor: ranking.map(r => catColor(r.category)),
-        borderRadius: 6,
-        borderSkipped: false,
-        barThickness: 'flex',
-        maxBarThickness: 22
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` ${fmtHKD(ctx.parsed.x)}/月` } }
-      },
-      scales: {
-        x: {
-          beginAtZero: true,
-          ticks: { callback: val => `HK$${val}`, color: tickColor },
-          grid: { color: gridColor }
-        },
-        y: {
-          grid: { display: false },
-          ticks: { color: labelColor, font: { size: 11 } }
-        }
-      }
-    }
-  });
+  const pct = v => (v / total) * 100;
+  el.innerHTML = `
+    <div class="split-bar" role="img" aria-label="各分類佔每月支出比例">
+      ${rows.map(([cat, v]) => `<span style="width:${pct(v.total)}%;background:${catColor(cat)}" title="${escHtml(cat)} ${pct(v.total).toFixed(0)}%"></span>`).join('')}
+    </div>
+    <table class="subtotal-table">
+      <thead><tr><th>分類</th><th class="r">項目</th><th class="r">佔比</th><th class="r">月均港幣</th></tr></thead>
+      <tbody>
+        ${rows.map(([cat, v]) => `
+          <tr>
+            <td><span class="swatch" style="background:${catColor(cat)}"></span>${escHtml(cat)}</td>
+            <td class="r num">${v.count}</td>
+            <td class="r num">${pct(v.total).toFixed(1)}%</td>
+            <td class="r num">${fmtNum(v.total)}</td>
+          </tr>`).join('')}
+      </tbody>
+      <tfoot><tr><td>合計</td><td class="r num">${rows.reduce((n, [, v]) => n + v.count, 0)}</td><td class="r num">100%</td><td class="r num">${fmtNum(total)}</td></tr></tfoot>
+    </table>`;
 }

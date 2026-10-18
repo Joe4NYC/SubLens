@@ -1,7 +1,7 @@
 import { state } from './config.js';
 import { populateSelects, showModal, hideModal, showToast, syncRemoveLabels } from './ui.js';
 import { loadData, loadAndDisplayRates, isApiConfigured } from './api.js';
-import { renderCards, renderRankingChart, renderPieChart, renderFilterTabs } from './render.js';
+import { renderCards, renderFilterTabs } from './render.js';
 import { openAddModal, openEditModal, openRemoveModal, closeModal, saveSubscription, confirmRemove, pauseSubscription, resumeSubscription } from './modals.js';
 import { isDemoMode, enterDemoMode, renderDemoBanner } from './demo.js';
 
@@ -28,7 +28,7 @@ function setFilter(filter) {
 // ── Dark Mode ─────────────────────────────────────────────────────
 function applyDarkMode(isDark) {
   document.documentElement.classList.toggle('dark', isDark);
-  document.getElementById('darkModeIcon').textContent = isDark ? '☀️' : '🌙';
+  document.querySelector('meta[name="theme-color"]').content = isDark ? '#080E1B' : '#14213D';
   localStorage.setItem('sublens-darkmode', isDark ? '1' : '0');
 }
 
@@ -38,8 +38,6 @@ applyDarkMode(savedDark !== null ? savedDark === '1' : prefersDark);
 
 document.getElementById('darkModeToggle').addEventListener('click', () => {
   applyDarkMode(!document.documentElement.classList.contains('dark'));
-  renderRankingChart(state.subscriptions);
-  renderPieChart();
 });
 
 // ── Event Listeners ───────────────────────────────────────────────
@@ -55,6 +53,7 @@ document.getElementById('subscriptionList').addEventListener('click', e => {
 });
 
 document.getElementById('btnAdd').addEventListener('click', openAddModal);
+document.querySelector("#emptyState [data-action='add']").addEventListener('click', openAddModal);
 document.getElementById('refreshRatesBtn').addEventListener('click', loadAndDisplayRates);
 document.getElementById('btnCloseModal').addEventListener('click', closeModal);
 document.getElementById('btnCancelModal').addEventListener('click', closeModal);

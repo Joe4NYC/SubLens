@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SubLens — 訂閱追蹤器</title>
+  <title>SubLens — 訂閱支出月結單</title>
 
   <!-- Favicons -->
   <link rel="icon" type="image/png" sizes="32x32"   href="icons/favicon-32.png">
@@ -12,375 +12,285 @@
 
   <!-- PWA / Android home screen -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#4F46E5">
+  <meta name="theme-color" content="#14213D">
 
-  <style>
-    *, *::before, *::after {
-      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
-    }
-  </style>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: { extend: {} }
-    }
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    .modal-enter  { animation: fadeIn 0.2s ease forwards; }
-    .modal-box-enter { animation: slideUp 0.2s ease forwards; }
-    @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-  </style>
+  <link rel="stylesheet" href="css/app.css">
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
+<body>
 
-  <!-- ============================================================ -->
-  <!-- Full-page Loading Overlay (first load only)                  -->
-  <!-- ============================================================ -->
-  <div id="loadingOverlay" class="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col items-center justify-center">
-    <div class="animate-spin rounded-full h-16 w-16 border-4 border-indigo-500 border-t-transparent mb-4"></div>
-    <p class="text-gray-400 dark:text-gray-500 text-sm">載入中…</p>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-moon"    viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+      <symbol id="i-sun"     viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+      <symbol id="i-key"     viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol>
+      <symbol id="i-plus"    viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></symbol>
+      <symbol id="i-x"       viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+      <symbol id="i-pause"   viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></symbol>
+      <symbol id="i-play"    viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></symbol>
+      <symbol id="i-pencil"  viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></symbol>
+      <symbol id="i-trash"   viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+    </defs>
+  </svg>
+
+  <!-- Full-page loading (first load only) -->
+  <div id="loadingOverlay" class="loading" role="status">
+    <div class="spinner"></div>
+    <p>正在讀取結單…</p>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- Toast Container                                              -->
-  <!-- ============================================================ -->
-  <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+  <div id="toastContainer" class="toasts" aria-live="polite"></div>
 
-  <!-- ============================================================ -->
-  <!-- Sticky Header                                                -->
-  <!-- ============================================================ -->
-  <header class="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-      <h1 class="text-xl font-bold text-indigo-600 tracking-tight">💰 SubLens</h1>
-      <div class="flex items-center gap-2">
-        <button id="darkModeToggle"
-          class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-          title="切換夜間模式"
-          aria-label="Toggle dark mode">
-          <span id="darkModeIcon">🌙</span>
+  <!-- Letterhead -->
+  <header class="letterhead">
+    <div class="letterhead-inner">
+      <div class="wordmark">
+        <h1 class="wordmark-name">Sub<span>Lens</span></h1>
+        <span class="wordmark-sub">訂閱支出月結單</span>
+      </div>
+      <div class="letterhead-actions">
+        <button id="darkModeToggle" class="icon-btn" title="切換深色模式" aria-label="切換深色模式">
+          <svg class="icon theme-moon"><use href="#i-moon"/></svg>
+          <svg class="icon theme-sun"><use href="#i-sun"/></svg>
         </button>
-        <button id="btnTokenSettings"
-          class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-          title="API Token 設定"
-          aria-label="API Token settings">
-          ⚙️
+        <button id="btnTokenSettings" class="icon-btn" title="API Token 設定" aria-label="API Token 設定">
+          <svg class="icon"><use href="#i-key"/></svg>
         </button>
-        <button id="btnAdd"
-          class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm">
-          + 新增
+        <button id="btnAdd" class="btn btn-primary">
+          <svg class="icon"><use href="#i-plus"/></svg>新增訂閱
         </button>
       </div>
     </div>
   </header>
 
-  <!-- ============================================================ -->
-  <!-- Demo Mode Banner (populated by js/demo.js)                   -->
-  <!-- ============================================================ -->
+  <!-- Demo strip (populated by js/demo.js) -->
   <div id="demoBanner" class="hidden"></div>
 
-  <!-- ============================================================ -->
-  <!-- Main Content                                                 -->
-  <!-- ============================================================ -->
-  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+  <main class="sheet">
+    <div class="guilloche" aria-hidden="true"></div>
 
-    <!-- Live Rates Bar (compact single-line) -->
-    <div id="ratesBar"
-      class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1
-             px-3 py-2 rounded-lg bg-white dark:bg-gray-800
-             border border-gray-100 dark:border-gray-700 text-xs">
-      <div class="flex items-center gap-3 text-gray-600 dark:text-gray-300">
-        <span class="font-medium text-gray-400 dark:text-gray-500">💱</span>
-        <span>🇺🇸 USD <strong id="rateUSD" class="text-indigo-600 dark:text-indigo-400 font-semibold ml-0.5">--</strong></span>
-        <span>🇨🇳 CNY <strong id="rateCNY" class="text-indigo-600 dark:text-indigo-400 font-semibold ml-0.5">--</strong></span>
-      </div>
-      <div class="flex items-center gap-2 text-gray-400 dark:text-gray-500">
-        <span>更新於 <span id="ratesUpdatedAt">--</span></span>
-        <button id="refreshRatesBtn"
-          class="text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 hover:underline transition">
-          ↻
-        </button>
-      </div>
-    </div>
-
-    <!-- Summary Cards -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <!-- Hero card: 每月支出 -->
-      <div class="overflow-hidden bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl shadow-md p-5 sm:col-span-2">
-        <p class="text-xs font-medium text-indigo-100 uppercase tracking-wide mb-2">每月支出</p>
-        <p id="summaryMonthly" class="text-4xl font-extrabold tracking-tight">HK$0.00</p>
-        <p class="text-xs text-indigo-100 mt-1">主要監控指標</p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-        <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">每年支出</p>
-        <p id="summaryYearly" class="text-2xl font-bold text-gray-700 dark:text-gray-200">HK$0.00</p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-        <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">累積支出</p>
-        <p id="summaryCumulative" class="text-2xl font-bold text-gray-700 dark:text-gray-200">HK$0.00</p>
-      </div>
-    </section>
-
-    <!-- Quick Insights Chips -->
-    <section id="insightsBar" class="flex flex-wrap gap-2"></section>
-
-    <!-- Charts -->
-    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-        <h2 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-4">分類支出（月均）</h2>
-        <div class="relative h-64">
-          <canvas id="pieChart"></canvas>
-          <div id="pieEmpty" class="hidden absolute inset-0 flex items-center justify-center text-gray-300 dark:text-gray-500 text-sm">暫無資料</div>
+    <!-- Statement head -->
+    <section class="section statement-head" aria-label="結單摘要">
+      <dl class="account">
+        <div class="account-row"><dt>結單日期</dt><dd id="statementDate" class="num">--</dd></div>
+        <div class="account-row"><dt>結算貨幣</dt><dd>港幣 HKD</dd></div>
+        <div class="account-row">
+          <dt>參考匯率</dt>
+          <dd id="ratesBar">
+            <span class="rate">USD <b id="rateUSD" class="num">--</b></span>
+            <span class="rate">CNY <b id="rateCNY" class="num">--</b></span>
+            <span class="rate-meta">更新於 <span id="ratesUpdatedAt" class="num">--</span>
+              <button id="refreshRatesBtn" class="icon-btn sm" title="重新取得匯率" aria-label="重新取得匯率">
+                <svg class="icon"><use href="#i-refresh"/></svg>
+              </button>
+            </span>
+          </dd>
         </div>
-      </div>
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
-        <h2 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-4">支出排行榜（月均 HKD）</h2>
-        <div class="relative h-64">
-          <canvas id="rankingChart"></canvas>
-          <div id="rankingEmpty" class="hidden absolute inset-0 flex items-center justify-center text-gray-300 dark:text-gray-500 text-sm">暫無資料</div>
+        <div class="account-row"><dt>訂閱項目</dt><dd id="accountCount">--</dd></div>
+      </dl>
+
+      <div class="due">
+        <div class="due-main">
+          <p class="due-label">每月支出</p>
+          <p class="due-amount num"><span class="ccy">HK$</span><span id="summaryMonthly">0.00</span></p>
         </div>
+        <div class="due-rows">
+          <div class="due-row"><span>每年支出</span><span id="summaryYearly" class="num">HK$0.00</span></div>
+          <div class="due-row"><span>累積支出（由開始至今）</span><span id="summaryCumulative" class="num">HK$0.00</span></div>
+        </div>
+        <p id="summaryWarning" class="due-warn" hidden></p>
       </div>
     </section>
 
-    <!-- Filter Tabs + List -->
-    <section>
-      <div class="inline-flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-4 gap-1">
-        <button class="tab-btn flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" data-filter="all">
-          全部 <span class="tab-count text-xs px-1.5 py-0.5 rounded-full">0</span>
-        </button>
-        <button class="tab-btn flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" data-filter="active">
-          啟用中 <span class="tab-count text-xs px-1.5 py-0.5 rounded-full">0</span>
-        </button>
-        <button class="tab-btn flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" data-filter="paused">
-          暫停 <span class="tab-count text-xs px-1.5 py-0.5 rounded-full">0</span>
-        </button>
-        <button class="tab-btn flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors" data-filter="archived">
-          封存 <span class="tab-count text-xs px-1.5 py-0.5 rounded-full">0</span>
-        </button>
+    <!-- Next debit -->
+    <div id="nextDebit" class="next-debit is-quiet"></div>
+
+    <!-- Category subtotals -->
+    <section class="section" aria-labelledby="subtotalTitle">
+      <div class="section-head">
+        <h2 id="subtotalTitle" class="section-title">分類小計</h2>
+        <span class="section-note">啟用中項目・月均港幣</span>
+      </div>
+      <div id="categoryBreakdown"></div>
+    </section>
+
+    <!-- Ledger -->
+    <section class="section" aria-labelledby="ledgerTitle">
+      <div class="section-head">
+        <h2 id="ledgerTitle" class="section-title">訂閱明細</h2>
+        <span class="section-note">按月均金額由高至低</span>
       </div>
 
-      <!-- Subscription Cards Grid -->
-      <div id="subscriptionList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      <div class="tabs" role="tablist">
+        <button class="tab-btn" role="tab" data-filter="all">全部 <span class="tab-count num">0</span></button>
+        <button class="tab-btn" role="tab" data-filter="active">啟用中 <span class="tab-count num">0</span></button>
+        <button class="tab-btn" role="tab" data-filter="paused">暫停 <span class="tab-count num">0</span></button>
+        <button class="tab-btn" role="tab" data-filter="archived">封存 <span class="tab-count num">0</span></button>
+      </div>
 
-      <!-- Empty State -->
-      <div id="emptyState" class="hidden text-center py-20 text-gray-400 dark:text-gray-500">
-        <div class="text-6xl mb-4">📭</div>
-        <p class="text-lg font-semibold text-gray-500 dark:text-gray-400">尚無訂閱記錄</p>
-        <p class="text-sm mt-1">點擊右上角「+ 新增」來新增第一個訂閱</p>
+      <table class="ledger-table">
+        <thead>
+          <tr>
+            <th scope="col">項目</th>
+            <th scope="col" class="col-cat">分類</th>
+            <th scope="col" class="col-cycle">週期</th>
+            <th scope="col" class="col-orig r">原幣金額</th>
+            <th scope="col" class="r">月均港幣</th>
+            <th scope="col" class="col-next">下次扣款</th>
+            <th scope="col"><span class="visually-hidden">操作</span></th>
+          </tr>
+        </thead>
+        <tbody id="subscriptionList"></tbody>
+        <tfoot id="ledgerTotal"></tfoot>
+      </table>
+
+      <div id="emptyState" class="empty-state hidden">
+        <p>這一欄沒有項目</p>
+        <p>新增一個訂閱，它會出現在明細和每月支出裡。</p>
+        <button type="button" class="btn btn-ghost" data-action="add">
+          <svg class="icon"><use href="#i-plus"/></svg>新增訂閱
+        </button>
       </div>
     </section>
+
+    <p class="fine-print">金額以港幣列示，外幣按參考匯率換算。年費項目以十二分之一計入月均。暫停及封存項目不計入每月及每年支出，但其已扣款項計入累積支出。</p>
   </main>
 
-  <!-- ============================================================ -->
-  <!-- Add / Edit Modal                                             -->
-  <!-- ============================================================ -->
-  <div id="modalOverlay"
-    class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
-    <div id="modalBox" class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-      <div class="p-6">
-        <div class="flex items-center justify-between mb-5">
-          <h2 id="modalTitle" class="text-lg font-bold text-gray-800 dark:text-gray-100">新增訂閱</h2>
-          <button id="btnCloseModal"
-            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-xl leading-none">
-            &times;
-          </button>
-        </div>
+  <!-- Add / Edit dialog -->
+  <div id="modalOverlay" class="overlay hidden" aria-labelledby="modalTitle">
+    <div id="modalBox" class="dialog">
+      <div class="dialog-head">
+        <h2 id="modalTitle" class="dialog-title">新增訂閱</h2>
+        <button id="btnCloseModal" type="button" class="icon-btn" aria-label="關閉">
+          <svg class="icon"><use href="#i-x"/></svg>
+        </button>
+      </div>
 
-        <form id="subscriptionForm" class="space-y-4" novalidate>
+      <form id="subscriptionForm" novalidate>
+        <div class="dialog-body">
           <input type="hidden" id="fieldId" />
 
-          <!-- 名稱 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              名稱 <span class="text-red-500">*</span>
-            </label>
-            <input id="fieldName" type="text"
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100"
-              placeholder="例：Netflix" />
-          </div>
-
-          <!-- 分類 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">分類</label>
-            <select id="fieldCategory"
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100">
-            </select>
-          </div>
-
-          <!-- Emoji -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Emoji 圖示</label>
-            <input id="fieldEmoji" type="text"
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100"
-              placeholder="📦" maxlength="4" />
-          </div>
-
-          <!-- 金額 + 貨幣 -->
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                金額 <span class="text-red-500">*</span>
-              </label>
-              <input id="fieldAmount" type="number" min="0.01" step="0.01"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100"
-                placeholder="0.00" />
+          <div class="field-row emoji">
+            <div class="field">
+              <label class="label" for="fieldName">名稱<span class="req">*</span></label>
+              <input id="fieldName" type="text" class="input" placeholder="例：Netflix" />
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">貨幣</label>
-              <select id="fieldCurrency"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100">
+            <div class="field">
+              <label class="label" for="fieldEmoji">圖示</label>
+              <input id="fieldEmoji" type="text" class="input center" placeholder="📦" maxlength="4" />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label class="label" for="fieldAmount">金額<span class="req">*</span></label>
+              <input id="fieldAmount" type="number" min="0.01" step="0.01" inputmode="decimal" class="input num" placeholder="0.00" />
+            </div>
+            <div class="field">
+              <label class="label" for="fieldCurrency">貨幣</label>
+              <select id="fieldCurrency" class="input">
               </select>
             </div>
           </div>
 
-          <!-- 繳費週期 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">繳費週期</label>
-            <select id="fieldBillingCycle"
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100">
-              <option value="monthly">每月</option>
-              <option value="yearly">每年</option>
-            </select>
+          <div class="field-row">
+            <div class="field">
+              <label class="label" for="fieldBillingCycle">繳費週期</label>
+              <select id="fieldBillingCycle" class="input">
+                <option value="monthly">每月</option>
+                <option value="yearly">每年</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="label" for="fieldCategory">分類</label>
+              <select id="fieldCategory" class="input">
+              </select>
+            </div>
           </div>
 
-          <!-- 開始日期 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              開始日期 <span class="text-red-500">*</span>
-            </label>
-            <input id="fieldStartDate" type="date"
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100" />
+          <div class="field">
+            <label class="label" for="fieldStartDate">開始日期<span class="req">*</span></label>
+            <input id="fieldStartDate" type="date" class="input num" />
           </div>
 
-          <!-- 備註 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">備註（選填）</label>
-            <textarea id="fieldNotes" rows="2"
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent resize-none bg-white dark:bg-gray-700 dark:text-gray-100"
-              placeholder="其他備注..."></textarea>
+          <div id="fieldEndDateWrapper" class="field">
+            <label class="label" for="fieldEndDate">結束日期（選填）</label>
+            <input id="fieldEndDate" type="date" class="input num" />
           </div>
 
-          <!-- 結束日期（僅封存時顯示）-->
-          <div id="fieldEndDateWrapper">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">結束日期（選填）</label>
-            <input id="fieldEndDate" type="date"
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100" />
+          <div class="field">
+            <label class="label" for="fieldNotes">備註（選填）</label>
+            <textarea id="fieldNotes" rows="2" class="input" placeholder="例如方案、共用對象"></textarea>
           </div>
+        </div>
 
-          <!-- Buttons -->
-          <div class="flex gap-3 pt-1">
-            <button type="button" id="btnCancelModal"
-              class="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              取消
-            </button>
-            <button type="submit"
-              class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">
-              儲存
-            </button>
-          </div>
-        </form>
-      </div>
+        <div class="dialog-foot">
+          <button type="button" id="btnCancelModal" class="btn btn-ghost">取消</button>
+          <button type="submit" class="btn btn-primary">儲存</button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- Remove Confirmation Modal                                    -->
-  <!-- ============================================================ -->
-  <div id="removeModalOverlay"
-    class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6">
-      <div class="text-center mb-5">
-        <div class="text-5xl mb-3">⚠️</div>
-        <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">確認移除</h2>
-        <p id="removeModalName" class="text-sm text-gray-500 dark:text-gray-400 mt-1"></p>
+  <!-- Remove dialog -->
+  <div id="removeModalOverlay" class="overlay hidden" aria-labelledby="removeTitle">
+    <div class="dialog sm">
+      <div class="dialog-head">
+        <h2 id="removeTitle" class="dialog-title">移除 <span id="removeModalName"></span></h2>
       </div>
-
-      <div class="space-y-2 mb-5">
-        <label id="labelDelete"
-          class="flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-          <input type="radio" name="removeMode" value="delete" class="mt-0.5 accent-indigo-600" />
+      <div class="dialog-body">
+        <label id="labelArchive" class="choice">
+          <input type="radio" name="removeMode" value="archive" checked />
           <div>
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">完全刪除</p>
-            <p class="text-xs text-gray-400">移除所有相關帳單記錄</p>
+            <p class="choice-title">封存，保留扣款記錄</p>
+            <p class="choice-desc">之後不再計入每月支出，累積支出照計。</p>
           </div>
         </label>
-        <label id="labelArchive"
-          class="flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-indigo-200 bg-indigo-50 dark:border-indigo-500 dark:bg-indigo-900/30 transition-colors">
-          <input type="radio" name="removeMode" value="archive" checked class="mt-0.5 accent-indigo-600" />
+        <label id="labelDelete" class="choice danger">
+          <input type="radio" name="removeMode" value="delete" />
           <div>
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">封存並保留帳單記錄</p>
-            <p class="text-xs text-indigo-400">預設選項</p>
+            <p class="choice-title">完全刪除</p>
+            <p class="choice-desc">連同所有扣款記錄一併刪除，無法復原。</p>
           </div>
         </label>
+        <div id="endDateField" class="field">
+          <label class="label" for="removeEndDate">結束日期（選填）</label>
+          <input id="removeEndDate" type="date" class="input num" />
+        </div>
       </div>
-
-      <!-- End Date Field (only shown when archive mode is selected) -->
-      <div id="endDateField" class="mb-5">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">結束日期（選填）</label>
-        <input id="removeEndDate" type="date"
-          class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100" />
-      </div>
-
-      <div class="flex gap-3">
-        <button id="btnCancelRemove"
-          class="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-          取消
-        </button>
-        <button id="btnConfirmRemove"
-          class="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">
-          確認移除
-        </button>
+      <div class="dialog-foot">
+        <button id="btnCancelRemove" type="button" class="btn btn-ghost">取消</button>
+        <button id="btnConfirmRemove" type="button" class="btn btn-danger">確認移除</button>
       </div>
     </div>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- Inline API Spinner (shown during each API call)             -->
-  <!-- ============================================================ -->
-  <div id="apiSpinner" class="hidden fixed bottom-5 right-5 z-50 bg-white dark:bg-gray-800 rounded-full shadow-lg p-2.5">
-    <div class="animate-spin rounded-full h-5 w-5 border-2 border-indigo-500 border-t-transparent"></div>
+  <!-- API activity indicator -->
+  <div id="apiSpinner" class="api-spinner hidden" role="status">
+    <div class="spinner sm"></div>同步中
   </div>
 
-  <!-- ============================================================ -->
-  <!-- Token Settings Modal                                         -->
-  <!-- ============================================================ -->
-  <div id="tokenModalOverlay"
-    class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6">
-      <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">🔑 API Token</h2>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-        輸入您在 Apps Script 專案屬性中設定的 TOKEN 值，儲存後存於本地。
-      </p>
-      <input id="tokenInput" type="password"
-        class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-700 dark:text-gray-100 mb-4"
-        placeholder="貼上 Token…" autocomplete="off" />
-      <div class="flex gap-3">
-        <button id="btnTokenClear"
-          class="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-          清除
-        </button>
-        <button id="btnTokenSave"
-          class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 rounded-lg transition-colors">
-          儲存
-        </button>
+  <!-- Token dialog -->
+  <div id="tokenModalOverlay" class="overlay hidden" aria-labelledby="tokenTitle">
+    <div class="dialog sm">
+      <div class="dialog-head">
+        <h2 id="tokenTitle" class="dialog-title">API Token</h2>
       </div>
-
-      <!-- 沒有 Token？改用 Demo 模式試用 -->
-      <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 text-center">
-        <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">沒有 Token？</p>
-        <button id="btnTokenDemo"
-          class="w-full border border-indigo-200 dark:border-indigo-600 text-indigo-600 dark:text-indigo-300 text-sm font-semibold py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
-          🧪 試用 Demo 模式
-        </button>
+      <div class="dialog-body">
+        <p>輸入 Apps Script 專案屬性中設定的 TOKEN。Token 只儲存在這個瀏覽器。</p>
+        <input id="tokenInput" type="password" class="input" placeholder="貼上 Token" autocomplete="off" aria-label="API Token" />
+      </div>
+      <div class="dialog-foot">
+        <button id="btnTokenClear" type="button" class="btn btn-ghost">清除</button>
+        <button id="btnTokenSave" type="button" class="btn btn-primary">儲存</button>
+      </div>
+      <div class="dialog-aside">
+        <span>沒有 Token？可以先用範例資料試用。</span>
+        <button id="btnTokenDemo" type="button" class="btn btn-ghost">改用 Demo 模式</button>
       </div>
     </div>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- Script                                                       -->
-  <!-- ============================================================ -->
   <script type="module" src="js/main.js"></script>
 
   <!--

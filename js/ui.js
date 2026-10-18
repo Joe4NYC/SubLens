@@ -3,9 +3,9 @@ import { CATEGORIES, CURRENCIES } from './config.js';
 export function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');
   const toast     = document.createElement('div');
-  const bg        = type === 'error' ? 'bg-red-500' : 'bg-green-500';
-  toast.className = `${bg} text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg pointer-events-auto`;
-  toast.textContent = message;
+  toast.className = type === 'error' ? 'toast error' : 'toast';
+  toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  toast.append(message);
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 3500);
 }
@@ -61,11 +61,10 @@ export function populateSelects() {
 
 export function syncRemoveLabels() {
   const selected = document.querySelector('input[name="removeMode"]:checked')?.value;
-  document.getElementById('labelDelete').className  = selected === 'delete'
-    ? 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-indigo-200 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 transition-colors'
-    : 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors';
-  document.getElementById('labelArchive').className = selected === 'archive'
-    ? 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-indigo-200 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 transition-colors'
-    : 'flex items-start gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors';
-  document.getElementById('endDateField').style.display = selected === 'archive' ? 'block' : 'none';
+  document.getElementById('labelDelete').classList.toggle('is-selected', selected === 'delete');
+  document.getElementById('labelArchive').classList.toggle('is-selected', selected === 'archive');
+  document.getElementById('endDateField').style.display = selected === 'archive' ? '' : 'none';
+  const confirm = document.getElementById('btnConfirmRemove');
+  confirm.textContent = selected === 'delete' ? '永久刪除' : '確認封存';
+  confirm.className   = selected === 'delete' ? 'btn btn-danger' : 'btn btn-primary';
 }

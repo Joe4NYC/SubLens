@@ -125,36 +125,24 @@ export function renderDemoBanner() {
   const el = document.getElementById('demoBanner');
   if (!el) return;
 
+  el.className = 'strip';
   if (isDemoMode()) {
-    el.className =
-      'bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-700';
     el.innerHTML = `
-      <div class="max-w-5xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-sm">
-        <span class="text-amber-800 dark:text-amber-200">
-          🧪 <strong>Demo 模式</strong> — 範例資料僅儲存在此瀏覽器，不會上傳。
-        </span>
-        <div class="flex items-center gap-3">
-          <button id="btnDemoReset" class="text-amber-700 dark:text-amber-300 hover:underline font-medium">重設資料</button>
-          <button id="btnDemoExit" class="text-amber-700 dark:text-amber-300 hover:underline font-medium">結束 Demo</button>
+      <div class="strip-inner">
+        <span><strong>Demo 模式</strong>・範例資料只存在這個瀏覽器，不會上傳。</span>
+        <div class="strip-actions">
+          <button id="btnDemoReset" class="btn btn-text">重設範例資料</button>
+          <button id="btnDemoExit" class="btn btn-text">結束 Demo</button>
         </div>
       </div>`;
-    el.classList.remove('hidden');
     document.getElementById('btnDemoReset').addEventListener('click', resetDemoData);
     document.getElementById('btnDemoExit').addEventListener('click', exitDemoMode);
   } else {
-    el.className =
-      'bg-indigo-50 dark:bg-indigo-900/30 border-b border-indigo-200 dark:border-indigo-700';
     el.innerHTML = `
-      <div class="max-w-5xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-sm">
-        <span class="text-indigo-800 dark:text-indigo-200">
-          👋 未設定 Google Sheets？用範例資料即時試用所有功能。
-        </span>
-        <button id="btnDemoEnter"
-          class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
-          試用 Demo
-        </button>
+      <div class="strip-inner">
+        <span>未設定 Google Sheets？可以先用範例資料試用。</span>
+        <button id="btnDemoEnter" class="btn btn-text">試用 Demo</button>
       </div>`;
-    el.classList.remove('hidden');
     document.getElementById('btnDemoEnter').addEventListener('click', enterDemoMode);
   }
 }

@@ -11,8 +11,7 @@ export const state = {
   subscriptions: [],
   filter: 'all',
   editingId: null,
-  removingId: null,
-  charts: { pie: null, trend: null }
+  removingId: null
 };
 
 export const CURRENCY_FLAGS = {
@@ -24,12 +23,13 @@ export const CURRENCY_FLAGS = {
 export const CATEGORIES = ['娛樂', '工作效率', '雲端儲存', 'AI工具', '其他'];
 export const CURRENCIES  = Object.keys(CURRENCY_FLAGS);
 
+// Muted statement inks; none may sit near debit red or bank green, which carry meaning.
 export const CAT_COLORS = {
-  '娛樂':    '#6366f1',
-  '工作效率': '#22c55e',
-  '雲端儲存': '#3b82f6',
-  'AI工具':  '#f59e0b',
-  '其他':    '#a855f7'
+  '娛樂':    '#7B5EA7',
+  '工作效率': '#4A8291',
+  '雲端儲存': '#3D6FA8',
+  'AI工具':  '#C08A1E',
+  '其他':    '#8C92A0'
 };
 
 export function getToken() {
