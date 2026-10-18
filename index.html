@@ -46,7 +46,6 @@
     <div class="letterhead-inner">
       <div class="wordmark">
         <h1 class="wordmark-name">Sub<span>Lens</span></h1>
-        <span class="wordmark-sub">訂閱支出月結單</span>
       </div>
       <div class="letterhead-actions">
         <button id="darkModeToggle" class="icon-btn" title="切換深色模式" aria-label="切換深色模式">
@@ -66,59 +65,62 @@
   <!-- Demo strip (populated by js/demo.js) -->
   <div id="demoBanner" class="hidden"></div>
 
-  <main class="sheet">
-    <div class="guilloche" aria-hidden="true"></div>
+  <main class="page">
 
     <!-- Statement head -->
-    <section class="section statement-head" aria-label="結單摘要">
-      <dl class="account">
-        <div class="account-row"><dt>結單日期</dt><dd id="statementDate" class="num">--</dd></div>
+    <section class="head-grid" aria-label="結單摘要">
+      <dl class="panel account">
+        <div class="account-row"><dt>結算日期</dt><dd id="statementDate" class="num">--</dd></div>
         <div class="account-row"><dt>結算貨幣</dt><dd>港幣 HKD</dd></div>
         <div class="account-row">
           <dt>參考匯率</dt>
           <dd id="ratesBar">
             <span class="rate">USD <b id="rateUSD" class="num">--</b></span>
             <span class="rate">CNY <b id="rateCNY" class="num">--</b></span>
-            <span class="rate-meta">更新於 <span id="ratesUpdatedAt" class="num">--</span>
-              <button id="refreshRatesBtn" class="icon-btn sm" title="重新取得匯率" aria-label="重新取得匯率">
-                <svg class="icon"><use href="#i-refresh"/></svg>
-              </button>
-            </span>
+            <button id="refreshRatesBtn" class="icon-btn sm" title="重新取得匯率" aria-label="重新取得匯率">
+              <svg class="icon"><use href="#i-refresh"/></svg>
+            </button>
+            <span class="rate-meta">更新於 <span id="ratesUpdatedAt" class="num">--</span></span>
           </dd>
         </div>
         <div class="account-row"><dt>訂閱項目</dt><dd id="accountCount">--</dd></div>
       </dl>
 
-      <div class="due">
-        <div class="due-main">
+      <div class="panel due-panel">
+        <div class="due">
           <p class="due-label">每月支出</p>
           <p class="due-amount num"><span class="ccy">HK$</span><span id="summaryMonthly">0.00</span></p>
+          <div class="due-split">
+            <div>
+              <p class="due-sub">年支出</p>
+              <p id="summaryYearly" class="due-fig num">HK$0.00</p>
+            </div>
+            <div>
+              <p class="due-sub">累積支出</p>
+              <p class="due-fig"><span id="summaryCumulative" class="num">HK$0.00</span> <small>（由開始至今）</small></p>
+            </div>
+          </div>
+          <p id="summaryWarning" class="due-warn" hidden></p>
         </div>
-        <div class="due-rows">
-          <div class="due-row"><span>每年支出</span><span id="summaryYearly" class="num">HK$0.00</span></div>
-          <div class="due-row"><span>累積支出（由開始至今）</span><span id="summaryCumulative" class="num">HK$0.00</span></div>
-        </div>
-        <p id="summaryWarning" class="due-warn" hidden></p>
       </div>
     </section>
 
     <!-- Next debit -->
-    <div id="nextDebit" class="next-debit is-quiet"></div>
+    <div id="nextDebit" class="panel next-debit"></div>
 
     <!-- Category subtotals -->
-    <section class="section" aria-labelledby="subtotalTitle">
+    <section class="panel section" aria-labelledby="subtotalTitle">
       <div class="section-head">
-        <h2 id="subtotalTitle" class="section-title">分類小計</h2>
+        <h2 id="subtotalTitle" class="section-title">分類支出</h2>
         <span class="section-note">啟用中項目・月均港幣</span>
       </div>
       <div id="categoryBreakdown"></div>
     </section>
 
     <!-- Ledger -->
-    <section class="section" aria-labelledby="ledgerTitle">
+    <section class="panel section" aria-labelledby="ledgerTitle">
       <div class="section-head">
         <h2 id="ledgerTitle" class="section-title">訂閱明細</h2>
-        <span class="section-note">按月均金額由高至低</span>
       </div>
 
       <div class="tabs" role="tablist">
@@ -134,14 +136,13 @@
             <th scope="col">項目</th>
             <th scope="col" class="col-cat">分類</th>
             <th scope="col" class="col-cycle">週期</th>
-            <th scope="col" class="col-orig r">原幣金額</th>
+            <th scope="col" class="col-orig">原幣金額</th>
             <th scope="col" class="r">月均港幣</th>
             <th scope="col" class="col-next">下次扣款</th>
-            <th scope="col"><span class="visually-hidden">操作</span></th>
+            <th scope="col" class="col-ops">操作</th>
           </tr>
         </thead>
         <tbody id="subscriptionList"></tbody>
-        <tfoot id="ledgerTotal"></tfoot>
       </table>
 
       <div id="emptyState" class="empty-state hidden">
@@ -151,9 +152,9 @@
           <svg class="icon"><use href="#i-plus"/></svg>新增訂閱
         </button>
       </div>
-    </section>
 
-    <p class="fine-print">金額以港幣列示，外幣按參考匯率換算。年費項目以十二分之一計入月均。暫停及封存項目不計入每月及每年支出，但其已扣款項計入累積支出。</p>
+      <p class="fine-print">金額以港幣列示，外幣按參考匯率換算。年費項目以十二分之一計入月均。暫停及封存項目不計入每月及每年支出，但其已扣款項計入累積支出。</p>
+    </section>
   </main>
 
   <!-- Add / Edit dialog -->

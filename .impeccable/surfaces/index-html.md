@@ -12,6 +12,8 @@ Constraints: static HTML + ES modules on GitHub Pages; zh-Hant; light and dark; 
 
 ## Direction contract
 
+USER-PINNED REVISION (2026-10-18): the owner supplied a reference mock and said 「我想要這個樣式」. It overrides the contract below wherever they differ: separate white panels (8px radius) on a light neutral ground instead of one sheet; no guilloche band; the amount panel is a tinted box with 年支出 / 累積支出 in two columns; the next-debit line is its own panel with a green dot (red only within 7 days) and dot-separated facts; category swatches are circles; the green tab underline; an explicit 操作 column; no per-row proportion bars and no double-ruled ledger total. The palette, navy ink, bank green, tabular figures and statement vocabulary still hold.
+
 THESIS: SubLens reads as a private monthly bank statement for subscriptions: an amount-due box, a category subtotal table, and an itemised ledger whose column sums to the amount due. It refuses the indigo SaaS dashboard of gradient hero card, doughnut chart and grid of soft cards.
 
 OWN-WORLD: cool security-tint paper ground (#F3F5F1) with one white statement sheet; navy ink (#14213D) for type and heavy rules; hairline grey-green rules; bank green (#2F6F4E) for the primary action; debit red (#B33A3A) only for the next charge and destructive actions. A faint guilloche band under the letterhead. System CJK sans, tabular lining figures in every amount, single and double rules as the only structure. In dark mode the sheet becomes a night statement on deep navy.

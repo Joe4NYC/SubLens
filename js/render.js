@@ -30,15 +30,8 @@ function relDays(d) {
   return `${d} 天後`;
 }
 
-// Largest active monthly figure, used to scale each row's proportion bar.
-function maxMonthly() {
-  return Math.max(0, ...state.subscriptions
-    .filter(s => s.status === 'active')
-    .map(s => monthlyHKD(s) ?? 0));
-}
-
 // Builds the HTML string for a single ledger row.
-function buildCard(sub, max = maxMonthly()) {
+function buildCard(sub) {
   const archived = sub.status === 'archived';
   const paused   = sub.status === 'paused';
   const active   = sub.status === 'active';
@@ -56,13 +49,12 @@ function buildCard(sub, max = maxMonthly()) {
   else             next = `${formatDate(sub.nextBillingDate)}${days >= 0 && days <= 7 ? `・${relDays(days)}` : ''}`;
   const soon = active && days >= 0 && days <= 7;
 
-  const barWidth = active && m && max ? Math.max(2, Math.round((m / max) * 100)) : 0;
-
   const note = archived
     ? `結束：${sub.endDate ? formatDate(sub.endDate) : '未記錄'}${sub.notes ? `・${escHtml(String(sub.notes))}` : ''}`
     : (sub.notes ? escHtml(String(sub.notes)) : '');
 
-  let toggleBtn = '';
+  // Archived rows get a spacer so edit/remove stay in their columns.
+  let toggleBtn = '<span class="icon-btn sm" aria-hidden="true"></span>';
   if (active) {
     toggleBtn = `<button data-action="pause" data-id="${id}" class="icon-btn sm" title="暫停" aria-label="暫停 ${name}">${icon('pause')}</button>`;
   } else if (paused) {
@@ -82,10 +74,9 @@ function buildCard(sub, max = maxMonthly()) {
       </td>
       <td class="col-cat"><span class="cat"><span class="swatch" style="background:${catColor(sub.category)}"></span>${escHtml(sub.category)}</span></td>
       <td class="col-cycle"><span class="cycle">${cycleLbl}</span></td>
-      <td class="col-orig r"><span class="orig num"><span class="code">${escHtml(sub.currency)}</span>${fmtNum(amount)}</span></td>
+      <td class="col-orig"><span class="orig num"><span class="code">${escHtml(sub.currency)}</span>${fmtNum(amount)}</span></td>
       <td class="cell-monthly r">
         <span class="monthly num"><span class="monthly-figure">${m === null ? '匯率未知' : fmtNum(m)}</span></span>
-        ${barWidth ? `<span class="monthly-track" aria-hidden="true"><span class="monthly-bar" style="width:${barWidth}%"></span></span>` : ''}
       </td>
       <td class="col-next"><span class="next num${soon ? ' is-soon' : ''}">${next}</span></td>
       <td class="cell-meta">${escHtml(sub.currency)} ${fmtNum(amount)}/${sub.billingCycle === 'yearly' ? '年' : '月'}・${archived ? '已封存' : paused ? '暫停中' : `<span class="${soon ? 'next is-soon' : ''}">${shortDate(sub.nextBillingDate)}</span>`}</td>
@@ -136,21 +127,19 @@ export function renderInsights() {
     .sort((a, b) => a.d - b.d);
 
   if (upcoming.length === 0) {
-    el.className = 'next-debit is-quiet';
-    el.innerHTML = `<span class="next-debit-tag">下一筆扣款</span><span class="muted">沒有已排期的扣款</span>`;
+    el.className = 'panel next-debit';
+    el.innerHTML = `<span class="next-debit-tag">下一筆扣款</span><span>沒有已排期的扣款</span>`;
     return;
   }
 
   const { sub, d } = upcoming[0];
-  const soonCount  = upcoming.filter(r => r.d <= 7).length;
-  const amount     = `${escHtml(sub.currency)} ${fmtNum(parseFloat(sub.amount) || 0)}`;
-  el.className = d <= 7 ? 'next-debit' : 'next-debit is-quiet';
+  const soon = d <= 7;
+  el.className = soon ? 'panel next-debit is-soon' : 'panel next-debit';
   el.innerHTML = `
     <span class="next-debit-tag">下一筆扣款</span>
-    <span><strong>${escHtml(sub.name)}</strong></span>
-    <span class="num">${formatDate(sub.nextBillingDate)}（${relDays(d)}）</span>
-    <span class="num">${amount}</span>
-    ${soonCount > 1 ? `<span class="muted">7 天內共 ${soonCount} 筆</span>` : ''}`;
+    <span>${escHtml(sub.name)}</span>
+    <span class="num">${formatDate(sub.nextBillingDate)}${soon ? `（${relDays(d)}）` : ''}</span>
+    <span class="num">${escHtml(sub.currency)} ${fmtNum(parseFloat(sub.amount) || 0)}</span>`;
 }
 
 // Updates summary + one row in-place; redraws subtotals only when financial data changed.
@@ -183,7 +172,6 @@ export function renderSummary() {
 
 export function renderCards() {
   const list  = document.getElementById('subscriptionList');
-  const foot  = document.getElementById('ledgerTotal');
   const empty = document.getElementById('emptyState');
 
   const rank = { active: 0, paused: 1, archived: 2 };
@@ -195,25 +183,13 @@ export function renderCards() {
 
   if (filtered.length === 0) {
     list.innerHTML = '';
-    foot.innerHTML = '';
     empty.classList.remove('hidden');
     return;
   }
   empty.classList.add('hidden');
-  const max = maxMonthly();
-  list.innerHTML = filtered.map(s => buildCard(s, max)).join('');
-
-  // The ledger's column sums to the amount-due box: only active rows count.
-  const showTotal = state.filter === 'all' || state.filter === 'active';
-  foot.innerHTML = showTotal ? `
-    <tr>
-      <td colspan="4" class="total-label">每月支出合計<small>啟用中項目，港幣</small></td>
-      <td class="r"><span class="total-figure num">${fmtHKD(calcSummary().monthly)}</span></td>
-      <td colspan="2" class="spacer"></td>
-    </tr>` : '';
+  list.innerHTML = filtered.map(buildCard).join('');
 }
 
-// Category subtotals: one segmented bar plus a ruled table.
 export function renderSubtotals() {
   const el = document.getElementById('categoryBreakdown');
   const byCat = {};

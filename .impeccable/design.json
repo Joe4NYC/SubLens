@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-18T05:15:12+00:00",
+  "generatedAt": "2026-10-18T12:00:00+00:00",
   "title": "Design System: SubLens",
   "extensions": {
     "colorMeta": {
       "paper": {
         "role": "neutral",
-        "displayName": "Security Tint Paper",
-        "canonical": "#EEF1EC",
+        "displayName": "Statement Paper",
+        "canonical": "#F4F5F2",
         "tonalRamp": [
           "#252C20",
           "#414E39",
@@ -41,7 +41,7 @@
       "tint": {
         "role": "neutral",
         "displayName": "Counterfoil Tint",
-        "canonical": "#F5F7F3",
+        "canonical": "#F2F4F0",
         "tonalRamp": [
           "#262E1F",
           "#435136",
@@ -173,23 +173,6 @@
         ],
         "dark": "#95D4B0",
         "cssVar": "--green-hi"
-      },
-      "green-wash": {
-        "role": "primary",
-        "displayName": "Green Wash",
-        "canonical": "#E6F0EA",
-        "tonalRamp": [
-          "#1D3024",
-          "#335440",
-          "#48795C",
-          "#5E9D77",
-          "#82B496",
-          "#A6CAB4",
-          "#CBE0D3",
-          "#EFF5F2"
-        ],
-        "dark": "#13291F",
-        "cssVar": "--green-wash"
       },
       "red": {
         "role": "secondary",
@@ -343,7 +326,7 @@
     "typographyMeta": {
       "display": {
         "displayName": "Display",
-        "purpose": "The monthly HKD figure in the amount-due box only."
+        "purpose": "The monthly HKD figure in the amount box only."
       },
       "headline": {
         "displayName": "Headline",
@@ -351,23 +334,27 @@
       },
       "title": {
         "displayName": "Title",
-        "purpose": "Section and dialog titles (dialogs 17px)."
+        "purpose": "Panel titles and amount-box yearly/cumulative figures (dialogs 17px)."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Running text; 14px under 720px; table cells 14px."
+        "purpose": "Running text; 14px under 720px; table cells, buttons, tabs at 14px."
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Column heads, tab counts, status chips."
+        "purpose": "Table column heads; 13px sub-labels, category/cycle cells, form labels."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Notes, currency codes, tab counts, status chips, fine print."
       }
     },
     "shadows": [
       {
-        "name": "sheet-lift",
+        "name": "panel-lift",
         "value": "0 1px 2px rgba(20, 33, 61, 0.08)",
         "dark": "0 1px 2px rgba(0, 0, 0, 0.4)",
-        "purpose": "Separates the sheet, toasts and API pill from the paper. The only shadow."
+        "purpose": "Panels, toasts and API pill. The only shadow."
       },
       {
         "name": "focus-ring-input",
@@ -377,31 +364,20 @@
     ],
     "rules": [
       {
-        "name": "rule-hairline",
-        "value": "1px solid var(--rule)"
+        "name": "panel-border",
+        "value": "1px solid var(--rule-soft)"
       },
       {
         "name": "rule-row",
         "value": "1px solid var(--rule-soft)"
       },
       {
-        "name": "rule-total",
-        "value": "1px solid var(--ink)"
+        "name": "rule-head",
+        "value": "1px solid var(--rule)"
       },
       {
-        "name": "rule-due-box",
-        "value": "2px solid var(--ink)"
-      },
-      {
-        "name": "rule-grand-total",
-        "value": "3px double var(--ink)"
-      }
-    ],
-    "texture": [
-      {
-        "name": "guilloche",
-        "value": "48x14 interlaced-sine SVG used as a repeat-x mask over var(--guilloche) (rgba(47,111,78,0.16); dark rgba(121,197,155,0.13)) on var(--tint), 14px tall",
-        "purpose": "Security-print band across the top of the sheet."
+        "name": "tab-active",
+        "value": "3px solid var(--green)"
       }
     ],
     "motion": [
@@ -429,8 +405,8 @@
     "breakpoints": [
       {
         "name": "stack",
-        "value": "860px",
-        "purpose": "Statement head stacks; amount-due box first."
+        "value": "960px",
+        "purpose": "Statement head stacks; amount panel first."
       },
       {
         "name": "compact",
@@ -476,9 +452,9 @@
       "name": "Status Tabs",
       "kind": "nav",
       "refersTo": "tab-active",
-      "description": "Ledger filter tabs with ink underline and green active count.",
+      "description": "Ledger filter tabs; active tab green with a 3px green underline.",
       "html": "<div class=\"ds-tabs\"><button class=\"ds-tab is-active\">全部 <span>7</span></button><button class=\"ds-tab\">啟用中 <span>5</span></button><button class=\"ds-tab\">暫停 <span>1</span></button></div>",
-      "css": ".ds-tabs { display:flex; gap:2px; border-bottom:1px solid var(--rule,#D6DCD4); font-family:var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); } .ds-tab { padding:10px 14px; margin-bottom:-1px; background:none; border:0; border-bottom:2px solid transparent; font:600 14px/1 var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); color:var(--ink-3,#5F6A80); cursor:pointer; } .ds-tab span { font-size:12px; color:var(--ink-3,#5F6A80); font-variant-numeric:tabular-nums; } .ds-tab:hover { color:var(--ink,#14213D); } .ds-tab.is-active { color:var(--ink,#14213D); border-bottom-color:var(--ink,#14213D); } .ds-tab.is-active span { color:var(--green,#2F6F4E); } .ds-tab:focus-visible { outline:2px solid var(--green,#2F6F4E); outline-offset:2px; }"
+      "css": ".ds-tabs { display:flex; gap:12px; border-bottom:1px solid var(--rule,#D6DCD4); } .ds-tab { padding:10px 14px; margin-bottom:-1px; background:none; border:0; border-bottom:2px solid transparent; font:600 14px/1 var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); color:var(--ink-3,#5F6A80); cursor:pointer; } .ds-tab span { font-size:12px; color:var(--ink-3,#5F6A80); font-variant-numeric:tabular-nums; } .ds-tab:hover { color:var(--ink,#14213D); } .ds-tab.is-active { color:var(--green,#2F6F4E); border-bottom:3px solid var(--green,#2F6F4E); } .ds-tab.is-active span { color:var(--green,#2F6F4E); } .ds-tab:focus-visible { outline:2px solid var(--green,#2F6F4E); outline-offset:2px; }"
     },
     {
       "name": "Status Chip",
@@ -489,56 +465,56 @@
       "css": ".ds-status { display:inline-block; padding:1px 6px; border:1px solid currentColor; border-radius:3px; font:600 12px/1.5 var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); } .ds-paused { color:var(--amber,#8A5A00); } .ds-archived { color:var(--ink-3,#5F6A80); }"
     },
     {
-      "name": "Amount-Due Box",
-      "kind": "card",
-      "refersTo": "amount-due-box",
-      "description": "Navy-ruled box holding the one display-scale figure and ruled yearly/cumulative rows.",
-      "html": "<div class=\"ds-due\"><div class=\"ds-due-main\"><p class=\"ds-due-label\">每月支出</p><p class=\"ds-due-amount\"><span>HK$</span>377.75</p></div><div class=\"ds-due-row\"><span>每年支出</span><b>HK$4,533.00</b></div><div class=\"ds-due-row\"><span>累積支出</span><b>HK$12,958.88</b></div></div>",
-      "css": ".ds-due { width:380px; border:2px solid var(--ink,#14213D); border-radius:4px; background:var(--sheet,#FFFFFF); color:var(--ink,#14213D); font-family:var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); font-feature-settings:'tnum' 1,'lnum' 1; } .ds-due p { margin:0; } .ds-due-main { padding:16px 20px 18px; border-bottom:1px solid var(--ink,#14213D); } .ds-due-label { font-size:14px; font-weight:600; color:var(--ink-2,#44506A); } .ds-due-amount { margin-top:6px; display:flex; align-items:baseline; gap:8px; font-size:56px; font-weight:800; line-height:1; letter-spacing:-0.035em; } .ds-due-amount span { font-size:18px; font-weight:700; letter-spacing:0; color:var(--ink-2,#44506A); } .ds-due-row { display:flex; justify-content:space-between; padding:10px 20px; font-size:14px; } .ds-due-row + .ds-due-row { border-top:1px solid var(--rule,#D6DCD4); } .ds-due-row span { color:var(--ink-2,#44506A); } .ds-due-row b { font-size:16px; }"
-    },
-    {
-      "name": "Next-Debit Line",
-      "kind": "custom",
-      "refersTo": "next-debit-line",
-      "description": "Full-width band naming the next charge; red only within seven days.",
-      "html": "<div class=\"ds-debit\"><span class=\"ds-debit-tag\">下一筆扣款</span><strong>ChatGPT Plus</strong><span>2026年10月21日（3 天後）</span><strong>USD 20.00</strong><span class=\"ds-muted\">7 天內共 3 筆</span></div>",
-      "css": ".ds-debit { display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px; padding:12px 32px; background:var(--red-wash,#F8E9E7); border-top:1px solid var(--rule,#D6DCD4); font:400 14px/1.5 var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); color:var(--ink,#14213D); font-feature-settings:'tnum' 1; } .ds-debit-tag { display:inline-flex; align-items:center; gap:6px; font-weight:700; color:var(--red,#B33A3A); } .ds-debit-tag::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--red,#B33A3A); } .ds-muted { color:var(--ink-2,#44506A); }"
-    },
-    {
-      "name": "Ledger Row and Total",
-      "kind": "custom",
-      "description": "Itemised row with emoji tile, right-aligned monthly figure on a hairline proportion bar, and a double-ruled total.",
-      "html": "<table class=\"ds-ledger\"><tbody><tr><td><span class=\"ds-tile\">🎬</span>Netflix</td><td class=\"ds-r ds-m\"><b>93.00</b><span class=\"ds-track\"><span style=\"width:60%\"></span></span></td></tr><tr><td><span class=\"ds-tile\">🎵</span>Spotify</td><td class=\"ds-r ds-m\"><b>58.00</b><span class=\"ds-track\"><span style=\"width:37%\"></span></span></td></tr></tbody><tfoot><tr><td><b>每月支出合計</b></td><td class=\"ds-r\"><span class=\"ds-total\">HK$151.00</span></td></tr></tfoot></table>",
-      "css": ".ds-ledger { width:420px; border-collapse:collapse; font:400 14px/1.5 var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); color:var(--ink,#14213D); font-feature-settings:'tnum' 1,'lnum' 1; } .ds-ledger td { padding:12px 10px; border-bottom:1px solid var(--rule-soft,#E7EBE5); } .ds-ledger tbody tr:hover { background:var(--tint,#F5F7F3); } .ds-tile { display:inline-grid; place-items:center; width:34px; height:34px; margin-right:12px; vertical-align:middle; border:1px solid var(--rule,#D6DCD4); border-radius:4px; background:var(--sheet,#FFFFFF); font-size:18px; } .ds-r { text-align:right; } .ds-m { position:relative; width:112px; } .ds-track { position:absolute; left:10px; right:10px; bottom:7px; height:2px; background:var(--rule-soft,#E7EBE5); } .ds-track span { display:block; height:100%; margin-left:auto; background:var(--ink-2,#44506A); } .ds-ledger tfoot td { padding:14px 10px 4px; border-bottom:0; border-top:1px solid var(--ink,#14213D); } .ds-total { font-weight:800; font-size:18px; border-bottom:3px double var(--ink,#14213D); padding-bottom:2px; }"
-    },
-    {
       "name": "Dialog",
       "kind": "card",
       "refersTo": "dialog",
       "description": "Square slip with ink border; tinted footer with equal buttons.",
       "html": "<div class=\"ds-dialog\"><div class=\"ds-dh\">API Token</div><div class=\"ds-db\">輸入 Apps Script 專案屬性中設定的 TOKEN。</div><div class=\"ds-df\"><button>清除</button><button class=\"ds-p\">儲存</button></div></div>",
-      "css": ".ds-dialog { width:400px; background:var(--sheet,#FFFFFF); color:var(--ink,#14213D); border:1px solid var(--ink,#14213D); border-radius:0; font-family:var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); } .ds-dh { padding:16px 20px; border-bottom:1px solid var(--rule,#D6DCD4); font-size:17px; font-weight:700; } .ds-db { padding:20px; font-size:14px; color:var(--ink-2,#44506A); } .ds-df { display:flex; gap:10px; padding:16px 20px; border-top:1px solid var(--rule,#D6DCD4); background:var(--tint,#F5F7F3); } .ds-df button { flex:1; min-height:38px; border:1px solid var(--rule,#D6DCD4); border-radius:4px; background:var(--sheet,#FFFFFF); color:var(--ink,#14213D); font:600 14px/1 var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); cursor:pointer; } .ds-df button:hover { border-color:var(--ink-3,#5F6A80); } .ds-df .ds-p { background:var(--green,#2F6F4E); border-color:transparent; color:var(--sheet,#FFFFFF); } .ds-df .ds-p:hover { background:var(--green-hi,#255A3F); } .ds-df button:focus-visible { outline:2px solid var(--green,#2F6F4E); outline-offset:2px; }"
+      "css": ".ds-dialog { width:400px; background:var(--sheet,#FFFFFF); color:var(--ink,#14213D); border:1px solid var(--ink,#14213D); border-radius:0; font-family:var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); } .ds-dh { padding:16px 20px; border-bottom:1px solid var(--rule,#D6DCD4); font-size:17px; font-weight:700; } .ds-db { padding:20px; font-size:14px; color:var(--ink-2,#44506A); } .ds-df { display:flex; gap:10px; padding:16px 20px; border-top:1px solid var(--rule,#D6DCD4); background:var(--tint,#F2F4F0); } .ds-df button { flex:1; min-height:38px; border:1px solid var(--rule,#D6DCD4); border-radius:4px; background:var(--sheet,#FFFFFF); color:var(--ink,#14213D); font:600 14px/1 var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); cursor:pointer; } .ds-df button:hover { border-color:var(--ink-3,#5F6A80); } .ds-df .ds-p { background:var(--green,#2F6F4E); border-color:transparent; color:var(--sheet,#FFFFFF); } .ds-df .ds-p:hover { background:var(--green-hi,#255A3F); } .ds-df button:focus-visible { outline:2px solid var(--green,#2F6F4E); outline-offset:2px; }"
+    },
+    {
+      "name": "Amount Panel",
+      "kind": "card",
+      "refersTo": "amount-box",
+      "description": "Panel with a tinted inner box: display-scale monthly figure over a two-column yearly/cumulative split.",
+      "html": "<div class=\"ds-panel ds-due-panel\"><div class=\"ds-due\"><p class=\"ds-due-label\">每月支出</p><p class=\"ds-due-amount\"><span>HK$</span>377.75</p><div class=\"ds-split\"><div><p class=\"ds-sub\">年支出</p><p class=\"ds-fig\">HK$4,533.00</p></div><div><p class=\"ds-sub\">累積支出</p><p class=\"ds-fig\">HK$12,958.88</p></div></div></div></div>",
+      "css": ".ds-panel { background:var(--sheet,#FFFFFF); border:1px solid var(--rule-soft,#E7EBE5); border-radius:8px; box-shadow:0 1px 2px rgba(20,33,61,.08); } .ds-due-panel { width:440px; padding:6px; font-family:var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); font-feature-settings:'tnum' 1,'lnum' 1; color:var(--ink,#14213D); } .ds-due p { margin:0; } .ds-due { padding:16px 18px 14px; background:var(--tint,#F2F4F0); border-radius:6px; } .ds-due-label { font-size:14px; font-weight:600; } .ds-due-amount { margin-top:4px; display:flex; align-items:baseline; gap:10px; font-size:56px; font-weight:800; line-height:1.05; letter-spacing:-0.03em; } .ds-due-amount span { font-size:26px; letter-spacing:0; } .ds-split { display:grid; grid-template-columns:1fr 1fr; margin-top:14px; padding-top:12px; border-top:1px solid var(--rule,#D6DCD4); } .ds-split > div + div { padding-left:24px; border-left:1px solid var(--rule,#D6DCD4); } .ds-sub { font-size:13px; color:var(--ink-2,#44506A); } .ds-fig { margin-top:4px; font-size:18px; font-weight:700; }"
+    },
+    {
+      "name": "Next-Debit Panel",
+      "kind": "custom",
+      "refersTo": "next-debit-panel",
+      "description": "One-line panel naming the next charge; green dot, red dot and tag within seven days.",
+      "html": "<div class=\"ds-debit is-soon\"><span class=\"ds-debit-tag\">下一筆扣款</span><span>ChatGPT Plus</span><span>2026年10月21日（3 天後）</span><span>USD 20.00</span></div>",
+      "css": ".ds-debit { display:flex; flex-wrap:wrap; align-items:center; padding:12px 24px; background:var(--sheet,#FFFFFF); border:1px solid var(--rule-soft,#E7EBE5); border-radius:8px; box-shadow:0 1px 2px rgba(20,33,61,.08); font:400 14px/1.55 var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); color:var(--ink-2,#44506A); font-feature-settings:'tnum' 1,'lnum' 1; } .ds-debit > span + span::before { content:'·'; margin:0 10px; color:var(--ink-3,#5F6A80); } .ds-debit-tag { display:inline-flex; align-items:center; gap:10px; } .ds-debit-tag::before { content:''; width:9px; height:9px; border-radius:50%; background:var(--green,#2F6F4E); } .ds-debit.is-soon .ds-debit-tag { color:var(--red,#B33A3A); font-weight:600; } .ds-debit.is-soon .ds-debit-tag::before { background:var(--red,#B33A3A); }"
+    },
+    {
+      "name": "Ledger Row",
+      "kind": "custom",
+      "description": "Itemised row: emoji tile, name and note, right-aligned monthly figure, red date within seven days, icon actions in the 操作 column.",
+      "html": "<table class=\"ds-ledger\"><thead><tr><th>項目</th><th class=\"ds-r\">月均港幣</th><th>下次扣款</th><th>操作</th></tr></thead><tbody><tr><td><span class=\"ds-tile\">🎬</span>Netflix</td><td class=\"ds-r\"><b>93.00</b></td><td class=\"ds-soon\">2026年10月24日・6 天後</td><td><button class=\"ds-ib\" aria-label=\"編輯\"><svg viewBox=\"0 0 24 24\"><path d=\"M4 20h4L18.5 9.5a2.1 2.1 0 0 0-4-4L4 16z\"/></svg></button></td></tr><tr><td><span class=\"ds-tile\">☁️</span>iCloud+</td><td class=\"ds-r\"><b>8.00</b></td><td>2026年11月5日</td><td><button class=\"ds-ib\" aria-label=\"編輯\"><svg viewBox=\"0 0 24 24\"><path d=\"M4 20h4L18.5 9.5a2.1 2.1 0 0 0-4-4L4 16z\"/></svg></button></td></tr></tbody></table>",
+      "css": ".ds-ledger { width:520px; border-collapse:collapse; font:400 14px/1.55 var(--font, -apple-system, BlinkMacSystemFont, 'PingFang HK', 'PingFang TC', 'Noto Sans TC', sans-serif); color:var(--ink,#14213D); font-feature-settings:'tnum' 1,'lnum' 1; } .ds-ledger th { font-size:13px; font-weight:500; color:var(--ink-2,#44506A); text-align:left; padding:12px 10px 8px; border-bottom:1px solid var(--rule,#D6DCD4); } .ds-ledger td { padding:6px 10px; border-bottom:1px solid var(--rule-soft,#E7EBE5); } .ds-ledger tbody tr:hover { background:var(--tint,#F2F4F0); } .ds-tile { display:inline-grid; place-items:center; width:34px; height:34px; margin-right:12px; vertical-align:middle; border:1px solid var(--rule,#D6DCD4); border-radius:6px; background:var(--sheet,#FFFFFF); font-size:18px; } .ds-r { text-align:right !important; } .ds-soon { color:var(--red,#B33A3A); font-weight:600; } .ds-ib { display:inline-grid; place-items:center; width:32px; height:32px; border:0; border-radius:4px; background:transparent; color:var(--ink-2,#44506A); cursor:pointer; } .ds-ib svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; } .ds-ib:hover { background:var(--tint,#F2F4F0); color:var(--ink,#14213D); } .ds-ib:focus-visible { outline:2px solid var(--green,#2F6F4E); outline-offset:2px; }"
     }
   ],
   "narrative": {
     "northStar": "The Private Statement",
-    "overview": "SubLens is a bank's monthly statement printed for one customer: a security-tint paper ground, one white statement sheet, navy ink, and structure made only from single and double rules. The amount-due box carries the one number that matters; the ledger below it itemises that number and closes on a double-ruled total that equals it. Everything reads like a document you audit, not a dashboard you browse.\n\nDensity is that of a printed statement: ruled rows, small grey column heads, right-aligned tabular figures, generous section padding around tight tables. Colour is ink, not decoration. Bank green marks the actions you take, debit red marks money about to leave, amber marks a paused or uncertain state, and category inks exist only to tell five categories apart. Dark mode is the same statement printed at night on deep navy, with every role preserved.",
+    "overview": "SubLens is a bank's monthly statement for one customer, laid out as separate white panels on a light neutral ground: an account panel with ruled detail rows, an amount panel whose tinted inner box holds the one number that matters, a one-line next-debit panel, a category subtotal table, and an itemised ledger. It reads like a document you audit, not a dashboard you browse.\n\nDensity is that of a statement: ruled rows, small grey column heads, right-aligned tabular figures, and roomy panel padding around tight tables. Colour carries meaning, never decoration. Bank green marks the actions you take and the current tab, debit red marks money about to leave, amber marks a paused or uncertain state, and category inks exist only to tell five categories apart. Dark mode is the same statement at night on deep navy, with every role preserved.",
     "keyCharacteristics": [
-      "One white sheet on tinted paper; the sheet holds the whole statement.",
-      "Rules, not cards: hairline grey-green rules between rows, navy rules for totals and the amount-due box.",
+      "Separate white panels (8px radius, 1px soft-rule border, 1px lift) on a pale neutral ground, 16px apart.",
+      "Rules inside panels: soft grey-green hairlines between rows, a full rule under table heads.",
       "Every amount in tabular lining figures, right-aligned in columns.",
-      "A faint guilloche security band crowns the sheet.",
-      "The ledger total is double-underlined and equals the amount-due figure."
+      "One display-scale figure, in a tinted inner box with yearly and cumulative totals split in two columns beneath it.",
+      "Small circles carry state and category: the next-debit dot and the subtotal swatches."
     ],
     "rules": [
       {
         "name": "The Meaning Ink Rule",
-        "body": "Green means \"act\", red means \"money leaves or data dies\", amber means \"paused or uncertain\". None is used for decoration, and no category ink may sit near green or red.",
+        "body": "Green means \"act\" or \"selected\", red means \"money leaves or data dies\", amber means \"paused or uncertain\". None is used for decoration.",
         "section": "colors"
       },
       {
         "name": "The Red Is Earned Rule",
-        "body": "The next-debit line turns red only when a charge falls within seven days; otherwise it sits quiet on the tint with a grey dot.",
+        "body": "The next-debit dot is green by default and turns red, with a red 600 tag, only when a charge falls within seven days. Ledger dates follow the same seven-day threshold.",
         "section": "colors"
       },
       {
@@ -548,28 +524,29 @@
       },
       {
         "name": "The One Big Number Rule",
-        "body": "Display scale belongs to the monthly amount due. No other figure on the screen comes close.",
+        "body": "Display scale belongs to the monthly amount. The next largest figures are 18px.",
         "section": "typography"
       },
       {
-        "name": "The Paper Not Shadow Rule",
-        "body": "If a surface needs to read as separate, step its value (paper to sheet to tint) or rule it. Do not add a larger shadow.",
+        "name": "The One Lift Rule",
+        "body": "Separation comes from value steps, borders and rules. The 1px panel lift is the only shadow; a surface that needs more separation gets a tint step or a rule, not a larger shadow.",
         "section": "elevation"
       }
     ],
     "dos": [
       "**Do** set every figure in tabular lining numerals and right-align it.",
-      "**Do** build structure from rules: 1px rule or rule-soft between rows, 1px ink above totals, 3px double ink under the grand total.",
-      "**Do** keep the amount-due figure the only display-scale element.",
-      "**Do** reserve green for actions, red for imminent debits and destruction, amber for paused or uncertain states.",
+      "**Do** group content into white panels (8px radius, 1px rule-soft border, panel lift) on paper, 16px apart.",
+      "**Do** build structure inside panels from 1px rules: rule-soft between rows, rule under heads.",
+      "**Do** keep the monthly amount the only display-scale element.",
+      "**Do** reserve green for actions and selection, red for imminent debits and destruction, amber for paused or uncertain states.",
       "**Do** define both light and dark values for any new colour token on `:root` and `.dark`.",
       "**Do** keep per-item emoji in its 34px ruled tile; it is user content."
     ],
     "donts": [
-      "**Don't** introduce gradient hero cards, doughnut charts or grids of soft rounded cards; this world is a statement, not a dashboard.",
-      "**Don't** use green, red or amber decoratively, or add a category ink near either meaning ink.",
-      "**Don't** add shadows beyond the 1px sheet lift.",
-      "**Don't** round controls or containers beyond 6px; the 8px next-debit dot is the only circle."
+      "**Don't** introduce gradient hero cards, doughnut charts or dashboard tiles; this world is a statement.",
+      "**Don't** use green, red or amber decoratively.",
+      "**Don't** add shadows beyond the 1px panel lift.",
+      "**Don't** round panels beyond 8px or controls beyond 4px; full circles are only for dots and swatches."
     ]
   }
 }
